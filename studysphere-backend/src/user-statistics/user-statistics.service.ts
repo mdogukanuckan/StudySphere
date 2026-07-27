@@ -1,5 +1,4 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { CreateUserStatisticDto } from './dto/create-user-statistic.dto';
 import { UpdateUserStatisticDto } from './dto/update-user-statistic.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { UserStatistic } from './entities/user-statistic.entity';
@@ -153,25 +152,5 @@ async getStatisticsBySubject(userId: string) {
 
 async getDailyStudyStats(userId: string) {
     return await this.studySessionsService.getDailyStats(userId);
-  }
-
-  create(createUserStatisticDto: CreateUserStatisticDto) {
-    return 'This action adds a new userStatistic';
-  }
-
-  findAll() {
-    return `This action returns all userStatistics`;
-  }
-
-  findOne(id: string) {
-    return `This action returns a #${id} userStatistic`;
-  }
-
-  update(id: string, updateUserStatisticDto: UpdateUserStatisticDto) {
-    return `This action updates a #${id} userStatistic`;
-  }
-
-  remove(id: string) {
-    return `This action removes a #${id} userStatistic`;
   }
 }

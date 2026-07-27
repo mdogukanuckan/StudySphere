@@ -189,6 +189,11 @@ export class AuthService {
 
         await this.refreshTokensService.revokeAllForUser(userId);
 
+        // Bildirim gonderimi basarisiz olsa bile sifre degisikligi geri alinmaz.
+        this.mailService.sendPasswordChangedNotice(user.email).catch((error) => {
+            this.logger.warn(`Şifre değişikliği bildirimi gönderilemedi: ${(error as Error)?.message}`);
+        });
+
         return { message: 'Şifre başarıyla güncellendi.' };
     }
 
@@ -255,6 +260,11 @@ export class AuthService {
 
         // Sifre degisince tum oturumlar sonlandirilir — changePassword ile tutarli.
         await this.refreshTokensService.revokeAllForUser(user.id);
+
+        // Bildirim gonderimi basarisiz olsa bile sifre sifirlama geri alinmaz.
+        this.mailService.sendPasswordChangedNotice(user.email).catch((error) => {
+            this.logger.warn(`Şifre değişikliği bildirimi gönderilemedi: ${(error as Error)?.message}`);
+        });
 
         return { message: 'Şifreniz başarıyla güncellendi. Lütfen yeni şifrenizle giriş yapın.' };
     }

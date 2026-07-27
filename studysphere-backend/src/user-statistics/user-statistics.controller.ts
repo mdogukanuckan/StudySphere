@@ -1,47 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { UserStatisticsService } from './user-statistics.service';
-import { CreateUserStatisticDto } from './dto/create-user-statistic.dto';
-import { UpdateUserStatisticDto } from './dto/update-user-statistic.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth-guard';
 
+// Not: bu controller'da daha once id ile calisan generic CRUD uclari
+// (POST /, GET /, GET /:id, PATCH /:id, DELETE /:id) vardi ama arkalarindaki
+// servis metotlari hic doldurulmamis NestJS iskelet koduydu (gercek DB
+// islemi yapmiyordu) ve hicbir sahiplik/rol kontrolu icermiyordu. Gercekte
+// kullanilmadiklari icin (uygulama hep asagidaki iki uc noktayi kullaniyor)
+// kaldirildilar — ileride biri bu iskeleti sahiplik kontrolu eklemeden
+// doldurursa gercek bir yetki acigina donusebilirdi.
 @Controller('user-statistics')
 @UseGuards(JwtAuthGuard)
 export class UserStatisticsController {
   constructor(private readonly userStatisticsService: UserStatisticsService) {}
 
   @Get('daily-stats')
-  @UseGuards(JwtAuthGuard) 
   async getDailyStats(@Req() req: any) {
-    const userId = req.user.userId; 
+    const userId = req.user.userId;
     return await this.userStatisticsService.getDailyStudyStats(userId);
   }
+
   @Get('me')
-  async getMyStatistics(@Req() req : any){
+  async getMyStatistics(@Req() req: any) {
     const userId = req.user.userId;
     return await this.userStatisticsService.getStatisticByUserId(userId);
-  }
-  @Post()
-  create(@Body() createUserStatisticDto: CreateUserStatisticDto) {
-    return this.userStatisticsService.create(createUserStatisticDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.userStatisticsService.findAll();
-  }
-
-  @Get(':id')
-findOne(@Param('id') id: string) {
-  return this.userStatisticsService.findOne(id);
-}
-
-@Patch(':id')
-update(@Param('id') id: string, @Body() updateUserStatisticDto: UpdateUserStatisticDto) {
-  return this.userStatisticsService.update(id, updateUserStatisticDto);
-}
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userStatisticsService.remove(id);
   }
 }

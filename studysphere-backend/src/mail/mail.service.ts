@@ -68,4 +68,28 @@ export class MailService {
       throw error;
     }
   }
+
+  // Hesap ele gecirilip sifre degistirilirse gercek sahibinin haberi olsun diye —
+  // hem "sifre degistir" (change-password) hem "sifremi unuttum" (reset-password)
+  // akislarindan sonra gonderilir. Best-effort: basarisiz olsa bile cagiran
+  // taraf islemi geri almaz (bkz. AuthService.changePassword / resetPassword).
+  async sendPasswordChangedNotice(to: string): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: `"StudySphere" <${this.fromAddress}>`,
+        to,
+        subject: 'StudySphere şifreniz değiştirildi',
+        text: `Hesabınızın şifresi az önce değiştirildi ve tüm cihazlarınızda oturumunuz sonlandırıldı.\n\nBu işlemi siz yapmadıysanız hemen "Şifremi Unuttum" akışıyla şifrenizi tekrar sıfırlayın.`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px;">
+            <p>Hesabınızın şifresi az önce değiştirildi ve tüm cihazlarınızdaki oturumlar sonlandırıldı.</p>
+            <p style="color: #b00020; font-weight: 600;">Bu işlemi siz yapmadıysanız hemen "Şifremi Unuttum" akışıyla şifrenizi tekrar sıfırlayın.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(`Şifre değişikliği bildirimi gönderilemedi (${to}): ${(error as Error).message}`);
+      throw error;
+    }
+  }
 }
