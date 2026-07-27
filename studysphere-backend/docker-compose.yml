@@ -1,0 +1,28 @@
+services:
+  studysphere-db:
+    image: postgres:15-alpine
+    container_name: studysphere_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env dosyasinda tanimli olmali}
+      POSTGRES_DB: ${DB_DATABASE:-studysphere_db}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  studysphere-pgadmin:
+    image: dpage/pgadmin4
+    container_name: studysphere_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@studysphere.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD .env dosyasinda tanimli olmali}
+    ports:
+      - "5055:80"
+    depends_on:
+      - studysphere-db
+
+volumes:
+  postgres_data:

@@ -1,0 +1,44 @@
+import { AuthResponse, LoginRequest, RegisterRequest } from "../types/auth";
+import apiClient from "./client";
+import { getErrorMessage } from "../utils/errorMessage";
+
+export const registerUser = async (data : RegisterRequest) : Promise<AuthResponse> => {
+    try {
+        const response = await apiClient.post<AuthResponse>('/auth/register', data);
+        return response.data;
+    } catch (error) {
+        throw new Error(getErrorMessage(error));
+    }
+}
+
+export const loginUser = async (data : LoginRequest) : Promise<AuthResponse> => {
+    try {
+        const response = await apiClient.post<AuthResponse>('/auth/login', data);
+        return response.data;
+    } catch (error) {
+        throw new Error(getErrorMessage(error));
+    }
+}
+
+export interface ChangePasswordRequest {
+    oldPassword: string;
+    newPassword: string;
+}
+
+export const changePassword = async (data: ChangePasswordRequest): Promise<{ message: string }> => {
+    try {
+        const response = await apiClient.post<{ message: string }>('/auth/change-password', data);
+        return response.data;
+    } catch (error) {
+        throw new Error(getErrorMessage(error));
+    }
+}
+
+export const logoutUser = async (refreshToken: string): Promise<{ message: string }> => {
+    try {
+        const response = await apiClient.post<{ message: string }>('/auth/logout', { refreshToken });
+        return response.data;
+    } catch (error) {
+        throw new Error(getErrorMessage(error));
+    }
+}
