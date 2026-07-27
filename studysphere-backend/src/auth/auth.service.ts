@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
@@ -7,16 +7,25 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
 import { RefreshTokenDto } from 'src/refresh-tokens/dto/refresh-token.dto';
+import { MailService } from '../mail/mail.service';
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 gün
+const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000; // 10 dakika
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000; // 60 saniye
+const MAX_VERIFICATION_ATTEMPTS = 5;
+const PASSWORD_RESET_CODE_TTL_MS = 10 * 60 * 1000; // 10 dakika
+const PASSWORD_RESET_RESEND_COOLDOWN_MS = 60 * 1000; // 60 saniye
+const MAX_PASSWORD_RESET_ATTEMPTS = 5;
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
 
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
         private readonly refreshTokensService: RefreshTokensService,
+        private readonly mailService: MailService,
     ) { }
 
     async register(registerDto: RegisterDto) {
@@ -37,10 +46,79 @@ export class AuthService {
                 lastName
             });
             const { passwordHash, ...safeUser } = savedUser;
+
+            // Kayit sonrasi dogrulama kodu gonderilir; e-posta gonderimi basarisiz
+            // olsa bile kayit islemi etkilenmez (kullanici giristen sonra tekrar
+            // kod isteyebilir — bkz. POST /auth/send-verification-code).
+            this.sendVerificationCode(savedUser.id).catch((error) => {
+                this.logger.warn(`Kayıt sonrası doğrulama kodu gönderilemedi: ${(error as Error)?.message}`);
+            });
+
             return safeUser;
         } catch (error) {
             throw new InternalServerErrorException('Kullanıcı kaydedilirken bir hata oluştu');
         }
+    }
+
+    private generateVerificationCode(): string {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async sendVerificationCode(userId: string) {
+        const state = await this.usersService.getVerificationState(userId);
+        if (state.isEmailVerified) {
+            return { message: 'E-posta adresiniz zaten doğrulanmış.' };
+        }
+
+        if (state.emailVerificationLastSentAt) {
+            const elapsed = Date.now() - new Date(state.emailVerificationLastSentAt).getTime();
+            if (elapsed < VERIFICATION_RESEND_COOLDOWN_MS) {
+                const waitSeconds = Math.ceil((VERIFICATION_RESEND_COOLDOWN_MS - elapsed) / 1000);
+                throw new BadRequestException(`Lütfen yeni kod istemeden önce ${waitSeconds} saniye bekleyin.`);
+            }
+        }
+
+        const code = this.generateVerificationCode();
+        const codeHash = await bcrypt.hash(code, 10);
+        const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+
+        await this.usersService.setEmailVerificationCode(userId, codeHash, expiresAt);
+
+        try {
+            await this.mailService.sendVerificationCode(state.email, code);
+        } catch (error) {
+            throw new InternalServerErrorException('Doğrulama kodu gönderilemedi, lütfen daha sonra tekrar deneyin.');
+        }
+
+        return { message: 'Doğrulama kodu e-posta adresinize gönderildi.' };
+    }
+
+    async verifyEmail(userId: string, code: string) {
+        const state = await this.usersService.getVerificationState(userId);
+        if (state.isEmailVerified) {
+            return { message: 'E-posta adresiniz zaten doğrulanmış.' };
+        }
+
+        if (!state.emailVerificationCode || !state.emailVerificationCodeExpiresAt) {
+            throw new BadRequestException('Önce bir doğrulama kodu talep etmelisiniz.');
+        }
+
+        if (new Date(state.emailVerificationCodeExpiresAt).getTime() < Date.now()) {
+            throw new BadRequestException('Doğrulama kodunun süresi dolmuş, yeni bir kod isteyin.');
+        }
+
+        if (state.emailVerificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+            throw new BadRequestException('Çok fazla hatalı deneme yaptınız, yeni bir kod isteyin.');
+        }
+
+        const isMatch = await bcrypt.compare(code, state.emailVerificationCode);
+        if (!isMatch) {
+            await this.usersService.incrementVerificationAttempts(userId);
+            throw new BadRequestException('Kod hatalı.');
+        }
+
+        await this.usersService.markEmailVerified(userId);
+        return { message: 'E-posta adresiniz başarıyla doğrulandı.' };
     }
 
     async login(loginDto: LoginDto) {
@@ -112,6 +190,73 @@ export class AuthService {
         await this.refreshTokensService.revokeAllForUser(userId);
 
         return { message: 'Şifre başarıyla güncellendi.' };
+    }
+
+    // Hesabin var olup olmadigini sizdirmamak icin basarili/basarisiz her durumda
+    // AYNI genel mesaj donuyoruz — aksi halde bu uc nokta e-posta kayitli mi diye
+    // sorgulamak icin kullanilabilirdi.
+    private readonly FORGOT_PASSWORD_GENERIC_RESPONSE = {
+        message: 'Bu e-posta adresine kayıtlı bir hesap varsa, şifre sıfırlama kodu gönderildi.',
+    };
+
+    async forgotPassword(email: string) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user) {
+            return this.FORGOT_PASSWORD_GENERIC_RESPONSE;
+        }
+
+        if (user.passwordResetLastSentAt) {
+            const elapsed = Date.now() - new Date(user.passwordResetLastSentAt).getTime();
+            if (elapsed < PASSWORD_RESET_RESEND_COOLDOWN_MS) {
+                // Cooldown'da bile ayni genel mesaji donuyoruz (bkz. yukaridaki not).
+                return this.FORGOT_PASSWORD_GENERIC_RESPONSE;
+            }
+        }
+
+        const code = this.generateVerificationCode();
+        const codeHash = await bcrypt.hash(code, 10);
+        const expiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL_MS);
+
+        await this.usersService.setPasswordResetCode(user.id, codeHash, expiresAt);
+
+        try {
+            await this.mailService.sendPasswordResetCode(user.email, code);
+        } catch (error) {
+            this.logger.warn(`Şifre sıfırlama kodu gönderilemedi: ${(error as Error)?.message}`);
+        }
+
+        return this.FORGOT_PASSWORD_GENERIC_RESPONSE;
+    }
+
+    async resetPassword(email: string, code: string, newPassword: string) {
+        const genericError = 'Kod hatalı veya süresi dolmuş.';
+        const user = await this.usersService.findByEmail(email);
+        if (!user || !user.passwordResetCode || !user.passwordResetCodeExpiresAt) {
+            throw new BadRequestException(genericError);
+        }
+
+        if (new Date(user.passwordResetCodeExpiresAt).getTime() < Date.now()) {
+            throw new BadRequestException(genericError);
+        }
+
+        if (user.passwordResetAttempts >= MAX_PASSWORD_RESET_ATTEMPTS) {
+            throw new BadRequestException('Çok fazla hatalı deneme yaptınız, yeni bir kod isteyin.');
+        }
+
+        const isMatch = await bcrypt.compare(code, user.passwordResetCode);
+        if (!isMatch) {
+            await this.usersService.incrementPasswordResetAttempts(user.id);
+            throw new BadRequestException(genericError);
+        }
+
+        const saltRounds = 10;
+        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+        await this.usersService.resetPassword(user.id, newPasswordHash);
+
+        // Sifre degisince tum oturumlar sonlandirilir — changePassword ile tutarli.
+        await this.refreshTokensService.revokeAllForUser(user.id);
+
+        return { message: 'Şifreniz başarıyla güncellendi. Lütfen yeni şifrenizle giriş yapın.' };
     }
 
 }

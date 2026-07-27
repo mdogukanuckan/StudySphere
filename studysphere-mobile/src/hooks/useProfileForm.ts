@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { useUpdateProfile } from './useUser';
+import { useSendVerificationCode } from './useEmailVerification';
 import { CurrentUser } from '../types/user';
 import { getErrorMessage } from '../utils/errorMessage';
 
@@ -11,6 +12,7 @@ export function useProfileForm(currentUser: CurrentUser | undefined) {
   const [lastName, setLastName] = useState('');
 
   const { mutate: updateProfile, isPending: isSaving } = useUpdateProfile();
+  const { mutate: sendVerificationCode } = useSendVerificationCode();
 
   useEffect(() => {
     if (currentUser) {
@@ -26,14 +28,38 @@ export function useProfileForm(currentUser: CurrentUser | undefined) {
       return;
     }
 
+    const trimmedEmail = email.trim();
+    // Backend e-posta degisince isEmailVerified'i sifirliyor (bkz.
+    // UsersService.update) — burada da yeni adrese otomatik bir dogrulama
+    // kodu gonderiyoruz ki kullanici tekrar "kod iste" butonuna basmak
+    // zorunda kalmasin.
+    const isChangingEmail = !!currentUser?.email && trimmedEmail !== currentUser.email;
+
     updateProfile(
       {
-        email: email.trim(),
+        email: trimmedEmail,
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
       },
       {
         onSuccess: () => {
+          if (isChangingEmail) {
+            sendVerificationCode(undefined, {
+              onSuccess: () => {
+                Alert.alert(
+                  'Başarılı',
+                  'Bilgileriniz güncellendi. Yeni e-posta adresinize bir doğrulama kodu gönderildi, lütfen doğrulayın.'
+                );
+              },
+              onError: () => {
+                Alert.alert(
+                  'Başarılı',
+                  'Bilgileriniz güncellendi. Doğrulama kodu gönderilirken bir sorun oluştu, profil ekranından tekrar isteyebilirsiniz.'
+                );
+              },
+            });
+            return;
+          }
           Alert.alert('Başarılı', 'Bilgileriniz güncellendi.');
         },
         onError: (error: any) => {

@@ -67,6 +67,19 @@ export class UsersService {
       }
     }
 
+    // E-posta degistiriliyorsa dogrulama durumu sifirlanir — kullanici yeni
+    // adresini tekrar dogrulamak zorunda kalir (bkz. AuthService.sendVerificationCode,
+    // EmailVerifiedGuard). Aksi halde biri hesabinin mailini rastgele bir adrese
+    // cevirip yine "dogrulanmis" gorunebilirdi.
+    const isChangingEmail = !!safeUpdateDto.email && safeUpdateDto.email !== user.email;
+    if (isChangingEmail) {
+      user.isEmailVerified = false;
+      user.emailVerificationCode = null;
+      user.emailVerificationCodeExpiresAt = null;
+      user.emailVerificationAttempts = 0;
+      user.emailVerificationLastSentAt = null;
+    }
+
     Object.assign(user, safeUpdateDto);
     const updatedUser = await this.userRepository.save(user);
     const { passwordHash, ...safeUser } = updatedUser;
@@ -88,6 +101,87 @@ export class UsersService {
   // update() kullanılıyor.
   async touchLastActiveAt(id: string): Promise<void> {
     await this.userRepository.update(id, { lastActiveAt: new Date() });
+  }
+
+  // E-posta dogrulama (OTP) icin — bkz. AuthService.sendVerificationCode /
+  // verifyEmail. Sadece dogrulama ile ilgili kolonlari secerek getiriyoruz.
+  async getVerificationState(id: string): Promise<Pick<User,
+    'id' | 'email' | 'isEmailVerified' | 'emailVerificationCode' |
+    'emailVerificationCodeExpiresAt' | 'emailVerificationAttempts' | 'emailVerificationLastSentAt'
+  >> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        isEmailVerified: true,
+        emailVerificationCode: true,
+        emailVerificationCodeExpiresAt: true,
+        emailVerificationAttempts: true,
+        emailVerificationLastSentAt: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException(`#${id} ID'li kullanıcı bulunamadı`);
+    }
+    return user;
+  }
+
+  async setEmailVerificationCode(id: string, codeHash: string, expiresAt: Date): Promise<void> {
+    await this.userRepository.update(id, {
+      emailVerificationCode: codeHash,
+      emailVerificationCodeExpiresAt: expiresAt,
+      emailVerificationAttempts: 0,
+      emailVerificationLastSentAt: new Date(),
+    });
+  }
+
+  async incrementVerificationAttempts(id: string): Promise<void> {
+    await this.userRepository.increment({ id }, 'emailVerificationAttempts', 1);
+  }
+
+  async markEmailVerified(id: string): Promise<void> {
+    await this.userRepository.update(id, {
+      isEmailVerified: true,
+      emailVerificationCode: null,
+      emailVerificationCodeExpiresAt: null,
+      emailVerificationAttempts: 0,
+    });
+  }
+
+  // EmailVerifiedGuard tarafindan kullanilir (bkz. auth/guards/email-verified.guard.ts).
+  async isEmailVerified(id: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { id }, select: { id: true, isEmailVerified: true } });
+    if (!user) {
+      throw new NotFoundException(`#${id} ID'li kullanıcı bulunamadı`);
+    }
+    return user.isEmailVerified;
+  }
+
+  // Sifre sifirlama (forgot password) icin — bkz. AuthService.forgotPassword /
+  // resetPassword. E-posta dogrulama koduyla AYNI kolonlari degil, ayri
+  // password_reset_* kolonlarini kullanir (farkli amac, farkli suresi/deneme
+  // sayaci — birbirine karismasin diye).
+  async setPasswordResetCode(id: string, codeHash: string, expiresAt: Date): Promise<void> {
+    await this.userRepository.update(id, {
+      passwordResetCode: codeHash,
+      passwordResetCodeExpiresAt: expiresAt,
+      passwordResetAttempts: 0,
+      passwordResetLastSentAt: new Date(),
+    });
+  }
+
+  async incrementPasswordResetAttempts(id: string): Promise<void> {
+    await this.userRepository.increment({ id }, 'passwordResetAttempts', 1);
+  }
+
+  async resetPassword(id: string, passwordHash: string): Promise<void> {
+    await this.userRepository.update(id, {
+      passwordHash,
+      passwordResetCode: null,
+      passwordResetCodeExpiresAt: null,
+      passwordResetAttempts: 0,
+    });
   }
 
   async remove(id: string): Promise<void> {

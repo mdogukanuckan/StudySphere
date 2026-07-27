@@ -71,7 +71,15 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
   const handleJoin = () => {
     joinRoom(undefined, {
       onError: (error: any) => {
-        Alert.alert('Katılamadınız', getErrorMessage(error, 'Odaya katılırken bir hata oluştu.'));
+        const message = getErrorMessage(error, 'Odaya katılırken bir hata oluştu.');
+        if (error?.response?.status === 403) {
+          Alert.alert('Katılamadınız', message, [
+            { text: 'Vazgeç', style: 'cancel' },
+            { text: 'Doğrula', onPress: () => navigation.getParent()?.getParent()?.navigate('VerifyEmail') },
+          ]);
+          return;
+        }
+        Alert.alert('Katılamadınız', message);
       },
     });
   };

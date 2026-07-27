@@ -66,6 +66,12 @@ export const LoginScreen = () => {
               onPress={handleLogin}
               />
               <CustomButton
+              title='Şifremi Unuttum'
+              variant='outline'
+              onPress={() => navigation.navigate('ForgotPassword')
+              }
+              />
+              <CustomButton
               title='Hesabın yok mu? Kayıt Ol'
               variant='outline'
               onPress={() => navigation.navigate('Register')

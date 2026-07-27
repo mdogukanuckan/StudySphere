@@ -42,6 +42,33 @@ export class User {
     @Column({ name: 'last_active_at', type: 'timestamp', nullable: true })
     lastActiveAt !: Date
 
+    @Column({ name: 'is_email_verified', type: 'boolean', default: false })
+    isEmailVerified !: boolean;
+
+    @Column({ name: 'email_verification_code', type: 'varchar', length: 255, nullable: true })
+    emailVerificationCode !: string | null;
+
+    @Column({ name: 'email_verification_code_expires_at', type: 'timestamp', nullable: true })
+    emailVerificationCodeExpiresAt !: Date | null;
+
+    @Column({ name: 'email_verification_attempts', type: 'int', default: 0 })
+    emailVerificationAttempts !: number;
+
+    @Column({ name: 'email_verification_last_sent_at', type: 'timestamp', nullable: true })
+    emailVerificationLastSentAt !: Date | null
+
+    @Column({ name: 'password_reset_code', type: 'varchar', length: 255, nullable: true })
+    passwordResetCode !: string | null;
+
+    @Column({ name: 'password_reset_code_expires_at', type: 'timestamp', nullable: true })
+    passwordResetCodeExpiresAt !: Date | null;
+
+    @Column({ name: 'password_reset_attempts', type: 'int', default: 0 })
+    passwordResetAttempts !: number;
+
+    @Column({ name: 'password_reset_last_sent_at', type: 'timestamp', nullable: true })
+    passwordResetLastSentAt !: Date | null
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt !: Date;
 

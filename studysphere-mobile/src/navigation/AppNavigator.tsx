@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProfileScreen from '../screens/ProfileScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import FriendProfileScreen from '../screens/FriendProfileScreen';
+import VerifyEmailScreen from '../screens/VerifyEmailScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 
@@ -62,6 +63,11 @@ export const AppNavigator = () => {
                         <Stack.Screen
                             name="FriendProfile"
                             component={FriendProfileScreen}
+                        />
+                        <Stack.Screen
+                            name="VerifyEmail"
+                            component={VerifyEmailScreen}
+                            options={{ headerShown: true, title: 'E-posta Doğrulama' }}
                         />
                     </>
                 ) : (

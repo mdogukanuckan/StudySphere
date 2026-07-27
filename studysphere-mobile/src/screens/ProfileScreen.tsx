@@ -15,6 +15,7 @@ import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { useTheme, ThemePreference } from '../context/ThemeContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
+import { useNavigation } from '@react-navigation/native';
 import { useCurrentUser } from '../hooks/useUser';
 import { useProfileForm } from '../hooks/useProfileForm';
 import { usePasswordChangeForm } from '../hooks/usePasswordChangeForm';
@@ -28,6 +29,7 @@ const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
 ];
 
 export default function ProfileScreen() {
+    const navigation = useNavigation<any>();
     const { colors, preference, setPreference } = useTheme();
     const { notificationsEnabled, setNotificationsEnabled } = useNotificationSettings();
 
@@ -91,6 +93,22 @@ export default function ProfileScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
+                {!currentUser?.isEmailVerified && (
+                    <View style={[styles.verifyBanner, { borderColor: colors.error, backgroundColor: colors.error + '15' }]}>
+                        <View style={styles.notificationTextWrap}>
+                            <Text style={[styles.notificationLabel, { color: colors.text }]}>E-posta adresiniz doğrulanmadı</Text>
+                            <Text style={[styles.helperText, { color: colors.textSecondary, marginLeft: 0, marginTop: 2 }]}>
+                                Çalışma odası oluşturmak ve mevcut bir odaya katılmak için e-posta adresinizi doğrulamanız gerekir.
+                            </Text>
+                        </View>
+                        <CustomButton
+                            title="Doğrula"
+                            onPress={() => navigation.navigate('VerifyEmail')}
+                            style={styles.verifyButton}
+                        />
+                    </View>
+                )}
+
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Görünüm</Text>
                 <View style={styles.themeRow}>
                     {THEME_OPTIONS.map((option) => {
@@ -289,6 +307,21 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 8,
+    },
+    verifyBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 12,
+        gap: 12,
+        marginBottom: 8,
+    },
+    verifyButton: {
+        marginVertical: 0,
+        paddingHorizontal: 16,
+        height: 40,
     },
     themeRow: {
         flexDirection: 'row',

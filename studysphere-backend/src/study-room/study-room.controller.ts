@@ -4,6 +4,7 @@ import { UpdateStudyRoomDto } from './dto/update-study-room.dto';
 import { RoomFilterDto } from './dto/room-filter.dto';
 import { UpdateParticipantStatusDto } from './dto/update-participant-status.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard';
+import { EmailVerifiedGuard } from 'src/auth/guards/email-verified.guard';
 import { StudyRoomService } from './study-room.service';
 
 
@@ -12,7 +13,9 @@ import { StudyRoomService } from './study-room.service';
 export class StudyRoomsController {
   constructor(private readonly studyRoomsService: StudyRoomService) {}
 
+  // Dogrulanmamis e-posta ile oda olusturulamaz — bkz. EmailVerifiedGuard.
   @Post()
+  @UseGuards(EmailVerifiedGuard)
   async createRoom(@Req() req, @Body() createStudyRoomDto: CreateStudyRoomDto) {
     return await this.studyRoomsService.createRoom(req.user.userId, createStudyRoomDto);
   }
@@ -38,7 +41,9 @@ export class StudyRoomsController {
     return { message: 'Oda başarıyla kapatıldı.' };
   }
 
+  // Dogrulanmamis e-posta ile mevcut bir odaya katilinamaz — bkz. EmailVerifiedGuard.
   @Post(':id/join')
+  @UseGuards(EmailVerifiedGuard)
   async joinRoom(@Req() req, @Param('id') id: string) {
     return await this.studyRoomsService.joinRoom(req.user.userId, id);
   }

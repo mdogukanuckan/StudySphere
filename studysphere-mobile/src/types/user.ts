@@ -6,6 +6,7 @@ export interface CurrentUser {
     lastName?: string;
     experienceMode?: string;
     role?: string;
+    isEmailVerified?: boolean;
 }
 
 

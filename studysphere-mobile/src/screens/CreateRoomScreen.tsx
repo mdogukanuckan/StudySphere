@@ -88,7 +88,15 @@ export default function CreateRoomScreen({ navigation }: Props) {
         navigation.replace('RoomDetail', { id: room.id });
       },
       onError: (error: any) => {
-        Alert.alert('Oda Oluşturulamadı', getErrorMessage(error, 'Oda oluşturulurken bir hata oluştu.'));
+        const message = getErrorMessage(error, 'Oda oluşturulurken bir hata oluştu.');
+        if (error?.response?.status === 403) {
+          Alert.alert('Oda Oluşturulamadı', message, [
+            { text: 'Vazgeç', style: 'cancel' },
+            { text: 'Doğrula', onPress: () => navigation.getParent()?.getParent()?.navigate('VerifyEmail') },
+          ]);
+          return;
+        }
+        Alert.alert('Oda Oluşturulamadı', message);
       },
     });
   };
