@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { StudyRoom } from "./entities/study-room.entity";
-import { Repository } from "typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { RoomParticipant } from "./entities/room-participant.entity";
 import { DataSource } from "typeorm";
 import { CreateStudyRoomDto } from "./dto/create-study-room.dto";
@@ -34,11 +34,17 @@ export class StudyRoomService {
     await queryRunner.startTransaction();
 
     try {
+      const inviteCode = createDto.isPrivate
+        ? await this.generateUniqueInviteCode(queryRunner.manager)
+        : null;
+
       const room = queryRunner.manager.create(StudyRoom, {
         ...createDto,
         ownerId: userId,
         currentParticipants: 1,
         status: RoomStatus.ACTIVE,
+        isPrivate: !!createDto.isPrivate,
+        inviteCode,
       });
       const savedRoom = await queryRunner.manager.save(room);
 
@@ -54,10 +60,6 @@ export class StudyRoomService {
       return await this.getRoom(savedRoom.id);
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      // checkUserActiveInAnyRoom yukarıda transaction başlamadan ÖNCE çalıştığı için,
-      // aynı kullanıcıdan gelen eşzamanlı iki istek ikisi de bu kontrolü geçebilir.
-      // Asıl garanti artık RoomParticipant'taki partial unique index'ten geliyor;
-      // ikinci isteğin INSERT'i buna çarpınca burada yakalayıp aynı dostça mesajı veriyoruz.
       if (this.isActiveParticipantConflict(error)) {
         throw new BadRequestException(
           'Zaten aktif bir odadasınız. Yeni bir oda kurmak için önce mevcut odadan ayrılın (oda sahibiyseniz kapatın).',
@@ -69,31 +71,36 @@ export class StudyRoomService {
     }
   }
 
-  async getRooms(filterDto: RoomFilterDto): Promise<StudyRoom[]> {
+  async getRooms(filterDto: RoomFilterDto, userId: string): Promise<StudyRoom[]> {
     const query = this.roomRepository.createQueryBuilder('room')
-      // owner ilişkisinden sadece görüntülemek için gereken alanları seçiyoruz
-      // (leftJoinAndSelect tüm User kolonlarını, passwordHash dahil, döndürürdü).
       .leftJoin('room.owner', 'owner')
       .addSelect(['owner.id', 'owner.username'])
       .leftJoinAndSelect('room.universe', 'universe')
       .leftJoinAndSelect('room.subject', 'subject')
       .leftJoinAndSelect('room.topic', 'topic')
       .where('1=1');
-      if (filterDto.universe_id) query.andWhere('room.universe_id = :universe_id', { universe_id: filterDto.universe_id });
+    if (filterDto.universe_id) query.andWhere('room.universe_id = :universe_id', { universe_id: filterDto.universe_id });
     if (filterDto.subject_id) query.andWhere('room.subject_id = :subject_id', { subject_id: filterDto.subject_id });
     if (filterDto.topic_id) query.andWhere('room.topic_id = :topic_id', { topic_id: filterDto.topic_id });
     if (filterDto.status) query.andWhere('room.status = :status', { status: filterDto.status });
 
-    // Kapatılmasının üzerinden 1 saatten fazla geçmiş kapalı odalar oda
-    // listesinde artık hiç görünmesin — istek, gereksiz yere veritabanından
-    // çekilmemesi yönünde olduğu için bu eleme uygulama katmanında değil,
-    // doğrudan burada (WHERE koşulunda) yapılıyor. closed_at bu alandan önce
-    // kapatılmış eski odalarda boş olabileceğinden, closed_at yoksa updated_at'e
-    // (closeRoom sırasında zaten güncelleniyor) düşüyoruz.
     const closedRoomVisibilityCutoff = new Date(Date.now() - 60 * 60 * 1000);
     query.andWhere(
       "(room.status != :closedStatus OR COALESCE(room.closed_at, room.updated_at) > :closedRoomVisibilityCutoff)",
       { closedStatus: RoomStatus.CLOSED, closedRoomVisibilityCutoff },
+    );
+
+    // Gizli odalar genel listede tamamen gizli: sadece odanın sahibine veya
+    // odada hâlâ aktif bir katılımcısı olan kullanıcıya gösteriliyor. Diğer
+    // herkes için bu oda hiç var olmamış gibi davranıyor — bulunması ancak
+    // davet kodu (joinRoomByCode) veya bir arkadaş daveti (room-invites
+    // modülü) üzerinden mümkün.
+    query.andWhere(
+      `(room.is_private = false OR room.owner_id = :userId OR EXISTS (
+        SELECT 1 FROM room_pariticipants rp
+        WHERE rp.room_id = room.id AND rp.user_id = :userId AND rp.is_active = true
+      ))`,
+      { userId },
     );
 
     const rooms = await query.orderBy('room.createdAt', 'DESC').getMany();
@@ -153,12 +160,6 @@ export class StudyRoomService {
     await queryRunner.startTransaction();
 
     try {
-      // pessimistic_write ("SELECT ... FOR UPDATE"): bu satırı okuyup kapasiteyi
-      // kontrol ettiğimiz an ile katılımcıyı ekleyip sayaç güncellediğimiz an arasında
-      // başka bir transaction'ın AYNI odaya eşzamanlı katılıp kapasiteyi aşmasını
-      // engeller. Önceden burada hiç satır kilidi yoktu; iki istek aynı anda
-      // room.currentParticipants'ı okuyup ikisi de "kapasite dolu değil" sonucuna
-      // varabiliyor, ikisi de katılabiliyordu.
       const room = await queryRunner.manager.findOne(StudyRoom, {
         where: { id: roomId },
         lock: { mode: 'pessimistic_write' },
@@ -200,6 +201,15 @@ export class StudyRoomService {
     }
   }
 
+  // Davet kodu ile katılma — kodu çözüp gerçek oda id'sine indirger, ardından
+  // asıl kapasite/kilit/çakışma kontrollerinin tamamını yapan joinRoom'u
+  // yeniden kullanır (mantığı tekrar etmemek için).
+  async joinRoomByCode(userId: string, code: string): Promise<RoomParticipant> {
+    const room = await this.roomRepository.findOne({ where: { inviteCode: code, isPrivate: true } });
+    if (!room) throw new NotFoundException('Geçersiz davet kodu.');
+    return this.joinRoom(userId, room.id);
+  }
+
   // 'kicked': kickParticipant() bu metodu yeniden kullanıyor (bkz. aşağısı) —
   // odadaki diğer katılımcılara "ayrıldı" mı yoksa "atıldı" mı olduğunu ayrı
   // bir olay alanı olarak iletebilmek için eklendi.
@@ -235,7 +245,7 @@ export class StudyRoomService {
       await queryRunner.release();
     }
   }
-  
+
   async closeRoom(userId: string, roomId: string): Promise<void> {
     const room = await this.getRoom(roomId);
     if (room.ownerId !== userId) throw new ForbiddenException('Sadece oda sahibi odayı kapatabilir.');
@@ -360,6 +370,18 @@ export class StudyRoomService {
   // ön-kontrolünü yarış durumunda atlatan istekler burada yakalanıyor.
   private isActiveParticipantConflict(error: unknown): boolean {
     return !!error && typeof error === 'object' && (error as { code?: string }).code === '23505';
+  }
+
+  // 6 haneli rastgele davet kodu üretir, DB'deki çakışmaları (çok düşük
+  // ihtimal ama 1.000.000 kombinasyonluk alan için imkansız değil) birkaç kez
+  // deneyerek eler. Aynı transaction'ın manager'ı üzerinden kontrol ediliyor.
+  private async generateUniqueInviteCode(manager: EntityManager): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const existing = await manager.findOne(StudyRoom, { where: { inviteCode: code } });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Davet kodu üretilemedi, lütfen tekrar deneyin.');
   }
 
 }

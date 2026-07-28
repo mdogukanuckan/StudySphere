@@ -1,13 +1,15 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Alert, Share } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CustomButton } from '../components/CustomButton';
 import { ActiveSessionWidget } from '../components/ActiveSessionWidget';
 import { StudySessionSetupModal } from '../components/StudySessionSetupModal';
+import { PickerModal, PickerItem } from '../components/PickerModal';
 import { useAuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeColors } from '../theme/theme';
-import { useRoomDetails, useJoinRoom, useLeaveRoom, useRoomParticipants, useUpdateMyStatus } from '../hooks/useStudyRooms';
+import { useRoomDetails, useJoinRoom, useLeaveRoom, useRoomParticipants, useUpdateMyStatus, useInviteFriendToRoom } from '../hooks/useStudyRooms';
+import { useFriends } from '../hooks/useFriends';
 import { useOngoingSession } from '../hooks/useStudySession';
 import { useStartSessionFlow } from '../hooks/useStartSessionFlow';
 import { getErrorMessage } from '../utils/errorMessage';
@@ -29,8 +31,11 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
   const { mutate: updateMyStatus, isPending: isUpdatingStatus } = useUpdateMyStatus(roomId);
   const { data: ongoingSession, isLoading: isSessionLoading } = useOngoingSession();
   const sessionFlow = useStartSessionFlow({ roomId });
+  const { data: friends } = useFriends();
+  const { mutate: inviteFriend, isPending: isInviting } = useInviteFriendToRoom(roomId);
+  const [isFriendPickerVisible, setFriendPickerVisible] = useState(false);
 
-  
+
   useJoinRoomChannel(roomId);
 
   const { notificationsEnabled } = useNotificationSettings();
@@ -92,6 +97,27 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
     });
   };
 
+  const handleShareCode = () => {
+    if (!room.inviteCode) return;
+    Share.share({
+      message: `StudySphere'de "${room.title}" çalışma odasına katıl!\nDavet kodu: ${room.inviteCode}`,
+    }).catch(() => {
+      // Kullanıcı paylaşım sayfasını iptal ettiyse sessizce geç.
+    });
+  };
+
+  const friendPickerItems: PickerItem[] = (friends ?? []).map((f) => ({ id: f.id, name: f.username }));
+
+  const handleSelectFriendToInvite = (item: PickerItem) => {
+    setFriendPickerVisible(false);
+    inviteFriend(item.id, {
+      onSuccess: () => Alert.alert('Davet Gönderildi', `${item.name} adlı arkadaşına oda daveti gönderildi.`),
+      onError: (error: any) => {
+        Alert.alert('Davet Gönderilemedi', getErrorMessage(error, 'Davet gönderilirken bir hata oluştu.'));
+      },
+    });
+  };
+
   const handleToggleStatus = () => {
     const nextStatus = selfParticipant?.currentStatus === 'BREAK' ? 'WORKING' : 'BREAK';
     updateMyStatus(nextStatus, {
@@ -132,6 +158,41 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
         <Text style={styles.infoText}>Katılımcı: {participants?.length ?? room.currentParticipants} / {room.maxParticipants}</Text>
         <Text style={styles.infoText}>Gizlilik: {room.isPrivate ? 'Gizli 🔒' : 'Herkese Açık 🌍'}</Text>
       </View>
+
+      {room.isPrivate && isParticipant && room.inviteCode && (
+        <View style={styles.inviteBox}>
+          <Text style={styles.inviteTitle}>Davet Kodu</Text>
+          <Text style={styles.inviteCode} selectable>{room.inviteCode}</Text>
+          <Text style={styles.inviteHint}>
+            Bu oda gizli — başkaları ancak bu kodla veya senin göndereceğin bir
+            davetle katılabilir.
+          </Text>
+          <View style={styles.inviteButtonRow}>
+            <CustomButton
+              title="Kodu Paylaş"
+              variant="outline"
+              onPress={handleShareCode}
+              style={styles.inviteButton}
+            />
+            <CustomButton
+              title="Arkadaşına Gönder"
+              variant="secondary"
+              onPress={() => setFriendPickerVisible(true)}
+              loading={isInviting}
+              style={styles.inviteButton}
+            />
+          </View>
+        </View>
+      )}
+
+      <PickerModal
+        visible={isFriendPickerVisible}
+        title="Davet Gönderilecek Arkadaş"
+        items={friendPickerItems}
+        emptyText="Henüz hiç arkadaşın yok."
+        onSelect={handleSelectFriendToInvite}
+        onClose={() => setFriendPickerVisible(false)}
+      />
 
       {isParticipant && (
         <View style={styles.statusBox}>
@@ -277,6 +338,40 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sectionButton: {
     marginBottom: 20,
+  },
+  inviteBox: {
+    backgroundColor: '#EDE9FE',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  inviteTitle: {
+    color: '#6D28D9',
+    fontWeight: '600',
+    marginBottom: 8,
+    fontSize: 16,
+  },
+  inviteCode: {
+    color: '#4C1D95',
+    fontWeight: 'bold',
+    fontSize: 28,
+    letterSpacing: 6,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  inviteHint: {
+    color: '#5B21B6',
+    fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  inviteButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inviteButton: {
+    flex: 1,
+    marginVertical: 0,
   },
   statusBox: {
     backgroundColor: '#F3F4F6',

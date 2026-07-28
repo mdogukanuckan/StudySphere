@@ -21,6 +21,15 @@ export const studyRoomApi = {
     await apiClient.post(`/study-rooms/${roomId}/join`);
   },
 
+  joinRoomByCode: async (code: string): Promise<{ roomId: string }> => {
+    const { data } = await apiClient.post('/study-rooms/join-by-code', { code });
+    return { roomId: data.roomId };
+  },
+
+  inviteFriendToRoom: async (roomId: string, friendUserId: string): Promise<void> => {
+    await apiClient.post(`/study-rooms/${roomId}/invites`, { friendUserId });
+  },
+
   getRoomParticipants: async (roomId: string): Promise<Participant[]> => {
     const { data } = await apiClient.get(`/study-rooms/${roomId}/participants`);
     return data;

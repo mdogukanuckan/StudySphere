@@ -39,6 +39,19 @@ export class StudyRoom {
     @Column({name : 'current_pariticipants', type : 'int', default :0})
     currentParticipants !: number;
 
+    // Gizli (davetli) oda mı? Doğrudan görünürlük kuralı study-room.service.ts
+    // #getRooms'ta uygulanıyor: gizli bir oda genel listede SADECE odanın
+    // sahibine veya aktif bir katılımcısına gösteriliyor, başkalarına hiç
+    // görünmüyor. Katılım ancak davet kodu (inviteCode) veya bir arkadaş
+    // daveti (bkz. room-invites modülü) üzerinden mümkün.
+    @Column({name : 'is_private', type : 'boolean', default : false})
+    isPrivate !: boolean;
+
+    // Sadece isPrivate=true odalarda dolu — 6 haneli, benzersiz davet kodu.
+    // Üretimi study-room.service.ts#generateUniqueInviteCode'da.
+    @Column({name : 'invite_code', type : 'varchar', length : 6, nullable : true, unique : true})
+    inviteCode !: string | null;
+
     // Oda kapatıldığı an (closeRoom) burası dolduruluyor. Oda listesi
     // sorgusu (getRooms), kapanmasının üzerinden 1 saatten fazla geçmiş
     // kapalı odaları veritabanı seviyesinde eleyip hiç döndürmüyor

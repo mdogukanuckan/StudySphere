@@ -2,9 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
-// Genel amacli SMTP gonderici. Saglayici secimi (Gmail App Password, Outlook,
-// Mailtrap, Resend SMTP vb.) tamamen .env'deki SMTP_* degiskenlerine bagli;
-// bu servis hangi saglayici oldugunu bilmez, sadece standart SMTP kullanir.
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -69,10 +66,6 @@ export class MailService {
     }
   }
 
-  // Hesap ele gecirilip sifre degistirilirse gercek sahibinin haberi olsun diye —
-  // hem "sifre degistir" (change-password) hem "sifremi unuttum" (reset-password)
-  // akislarindan sonra gonderilir. Best-effort: basarisiz olsa bile cagiran
-  // taraf islemi geri almaz (bkz. AuthService.changePassword / resetPassword).
   async sendPasswordChangedNotice(to: string): Promise<void> {
     try {
       await this.transporter.sendMail({

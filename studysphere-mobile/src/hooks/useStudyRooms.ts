@@ -92,6 +92,22 @@ export const useJoinRoom = (roomId: string) => {
   });
 };
 
+export const useJoinRoomByCode = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => studyRoomApi.joinRoomByCode(code),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
+    },
+  });
+};
+
+export const useInviteFriendToRoom = (roomId: string) => {
+  return useMutation({
+    mutationFn: (friendUserId: string) => studyRoomApi.inviteFriendToRoom(roomId, friendUserId),
+  });
+};
+
 export const useLeaveRoom = (roomId: string) => {
   const queryClient = useQueryClient();
   return useMutation({

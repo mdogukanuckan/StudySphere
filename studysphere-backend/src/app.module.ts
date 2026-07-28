@@ -17,6 +17,7 @@ import { StudyRoomsModule } from './study-room/study-room.module';
 import { TopicTasksModule } from './topic-tasks/topic-tasks.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { FriendsModule } from './friends/friends.module';
+import { RoomInvitesModule } from './room-invites/room-invites.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { FriendsModule } from './friends/friends.module';
     StudyRoomsModule,
     TopicTasksModule,
     AchievementsModule,
-    FriendsModule
+    FriendsModule,
+    RoomInvitesModule
   ],
   controllers: [AppController],
   providers: [

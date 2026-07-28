@@ -8,6 +8,8 @@ import CreateRoomScreen from '../screens/CreateRoomScreen';
 import ParticipantsScreen from '../screens/Participants';
 import RoomDetailScreen from '../screens/RoomDetail';
 import RoomSettingsScreen from '../screens/RoomSettings';
+import JoinRoomByCodeScreen from '../screens/JoinRoomByCodeScreen';
+import RoomInvitesScreen from '../screens/RoomInvitesScreen';
 
 export type StudyRoomStackParamList = {
   RoomList: undefined;
@@ -15,6 +17,8 @@ export type StudyRoomStackParamList = {
   CreateRoom: undefined;
   Participants: { id: string };
   RoomSettings: { id: string };
+  JoinRoomByCode: undefined;
+  RoomInvites: undefined;
 };
 
 const Stack = createNativeStackNavigator<StudyRoomStackParamList>();
@@ -52,10 +56,20 @@ export const StudyRoomNavigator = () => {
         component={ParticipantsScreen} 
         options={{ title: 'Katılımcılar' }} 
       />
-      <Stack.Screen 
-        name="RoomSettings" 
-        component={RoomSettingsScreen} 
-        options={{ title: 'Oda Ayarları' }} 
+      <Stack.Screen
+        name="RoomSettings"
+        component={RoomSettingsScreen}
+        options={{ title: 'Oda Ayarları' }}
+      />
+      <Stack.Screen
+        name="JoinRoomByCode"
+        component={JoinRoomByCodeScreen}
+        options={{ title: 'Kod ile Katıl' }}
+      />
+      <Stack.Screen
+        name="RoomInvites"
+        component={RoomInvitesScreen}
+        options={{ title: 'Davetlerim' }}
       />
 
     </Stack.Navigator>

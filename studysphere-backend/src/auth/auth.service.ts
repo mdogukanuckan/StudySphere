@@ -47,10 +47,7 @@ export class AuthService {
             });
             const { passwordHash, ...safeUser } = savedUser;
 
-            // Kayit sonrasi dogrulama kodu gonderilir; e-posta gonderimi basarisiz
-            // olsa bile kayit islemi etkilenmez (kullanici giristen sonra tekrar
-            // kod isteyebilir — bkz. POST /auth/send-verification-code).
-            this.sendVerificationCode(savedUser.id).catch((error) => {
+             this.sendVerificationCode(savedUser.id).catch((error) => {
                 this.logger.warn(`Kayıt sonrası doğrulama kodu gönderilemedi: ${(error as Error)?.message}`);
             });
 
@@ -213,7 +210,6 @@ export class AuthService {
         if (user.passwordResetLastSentAt) {
             const elapsed = Date.now() - new Date(user.passwordResetLastSentAt).getTime();
             if (elapsed < PASSWORD_RESET_RESEND_COOLDOWN_MS) {
-                // Cooldown'da bile ayni genel mesaji donuyoruz (bkz. yukaridaki not).
                 return this.FORGOT_PASSWORD_GENERIC_RESPONSE;
             }
         }
@@ -258,10 +254,8 @@ export class AuthService {
         const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
         await this.usersService.resetPassword(user.id, newPasswordHash);
 
-        // Sifre degisince tum oturumlar sonlandirilir — changePassword ile tutarli.
         await this.refreshTokensService.revokeAllForUser(user.id);
 
-        // Bildirim gonderimi basarisiz olsa bile sifre sifirlama geri alinmaz.
         this.mailService.sendPasswordChangedNotice(user.email).catch((error) => {
             this.logger.warn(`Şifre değişikliği bildirimi gönderilemedi: ${(error as Error)?.message}`);
         });

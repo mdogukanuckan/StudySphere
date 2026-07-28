@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useGetRooms } from '../hooks/useStudyRooms';
+import { useMyRoomInvites } from '../hooks/useRoomInvites';
 import { StudyRoomCard } from '../components/StudyRoomCard';
 import { SPACING, ThemeColors, GlobalStyles } from '../theme/theme';
 import { useTheme } from '../context/ThemeContext';
@@ -65,6 +66,7 @@ export const RoomListScreen = () => {
   const { colors, globalStyles } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: rooms, isLoading, isError, refetch } = useGetRooms();
+  const { data: myInvites } = useMyRoomInvites();
   const navigation = useNavigation<NativeStackNavigationProp<StudyRoomStackParamList>>();
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
@@ -141,6 +143,25 @@ export const RoomListScreen = () => {
         />
       </View>
 
+      <View style={styles.secondaryActionsRow}>
+        <TouchableOpacity
+          style={styles.secondaryAction}
+          onPress={() => navigation.navigate('JoinRoomByCode')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.secondaryActionText}>🔑 Kod ile Katıl</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryAction}
+          onPress={() => navigation.navigate('RoomInvites')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.secondaryActionText}>
+            ✉️ Davetlerim{myInvites && myInvites.length > 0 ? ` (${myInvites.length})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.tabBar}>
         {TABS.map((tab, index) => (
           <TouchableOpacity
@@ -204,6 +225,26 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  secondaryActionsRow: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  secondaryAction: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryActionText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '600',
   },
   tabBar: {
     flexDirection: 'row',

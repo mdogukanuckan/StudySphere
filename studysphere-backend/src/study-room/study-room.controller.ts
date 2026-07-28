@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Re
 import { CreateStudyRoomDto } from './dto/create-study-room.dto';
 import { UpdateStudyRoomDto } from './dto/update-study-room.dto';
 import { RoomFilterDto } from './dto/room-filter.dto';
+import { JoinByCodeDto } from './dto/join-by-code.dto';
 import { UpdateParticipantStatusDto } from './dto/update-participant-status.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard';
 import { EmailVerifiedGuard } from 'src/auth/guards/email-verified.guard';
@@ -21,8 +22,17 @@ export class StudyRoomsController {
   }
 
   @Get()
-  async getRooms(@Query() filterDto: RoomFilterDto) {
-    return await this.studyRoomsService.getRooms(filterDto);
+  async getRooms(@Req() req, @Query() filterDto: RoomFilterDto) {
+    return await this.studyRoomsService.getRooms(filterDto, req.user.userId);
+  }
+
+  // Davet kodu ile katılma — gizli bir odaya doğrudan oda id'si bilinmeden
+  // katılmayı sağlar. Normal katılma (:id/join) gibi e-posta doğrulaması
+  // gerektiriyor.
+  @Post('join-by-code')
+  @UseGuards(EmailVerifiedGuard)
+  async joinByCode(@Req() req, @Body() joinByCodeDto: JoinByCodeDto) {
+    return await this.studyRoomsService.joinRoomByCode(req.user.userId, joinByCodeDto.code);
   }
 
   @Get(':id')
