@@ -36,12 +36,9 @@ export default function TopicDetailScreen() {
     const navigation = useNavigation<TopicDetailNavigationProp>();
     const { topicId, topicName } = route.params;
 
-    // --- Notlar ---
     const { data: topic, isLoading: isTopicLoading } = useTopic(topicId);
     const updateTopicMutation = useUpdateTopic();
     const [notesText, setNotesText] = useState('');
-    // Kullanıcı yazmaya başladıktan sonra arka plandaki bir refetch, o an
-    // yazılmakta olan metni sessizce ezmesin diye.
     const [isNotesDirty, setIsNotesDirty] = useState(false);
 
     useEffect(() => {
@@ -62,7 +59,6 @@ export default function TopicDetailScreen() {
         );
     };
 
-    // --- Görevler / Checklist ---
     const { data: tasks, isLoading: isTasksLoading } = useTopicTasks(topicId);
     const createTaskMutation = useCreateTopicTask();
     const updateTaskMutation = useUpdateTopicTask();
@@ -129,7 +125,7 @@ export default function TopicDetailScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                {/* --- Görevler / Checklist --- */}
+                {}
                 <Text style={styles.sectionTitle}>
                     Görevler {tasks && tasks.length > 0 ? `(${completedCount}/${tasks.length})` : ''}
                 </Text>
@@ -179,7 +175,7 @@ export default function TopicDetailScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* --- Notlar --- */}
+                {}
                 <Text style={[styles.sectionTitle, { marginTop: SPACING.xl }]}>Notlar</Text>
                 {isTopicLoading ? (
                     <ActivityIndicator color={colors.primary} style={{ marginVertical: SPACING.md }} />

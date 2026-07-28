@@ -31,11 +31,6 @@ export class UserStatistic {
   @Column({name:'last_study_date', type: 'timestamp', nullable: true })
   lastStudyDate !: Date;
 
-  // Başarımlar: "hatasız seans" için kümülatif sayaç (kullanıcı kararı: tek
-  // seferlik değil, "toplam X hatasız oturum tamamladın" şeklinde birikimli).
-  // Sadece AchievementsService.evaluateAndUnlock() -> UserStatisticsService.
-  // incrementErrorlessSessions() üzerinden, suistimal kontrolünden geçen
-  // seanslar için artırılır (bkz. achievements/achievement.catalog.ts).
   @Column({name:'cumulative_errorless_sessions', type: 'int', default: 0 })
   cumulativeErrorlessSessions !: number;
 

@@ -50,7 +50,6 @@ export class FriendsService {
         };
     }
 
-    // İki kullanıcı arasında (yön fark etmeksizin) var olan tek ilişkiyi bulur.
     private async findExistingRelationship(userAId: string, userBId: string): Promise<Friendship | null> {
         return this.friendshipRepository.findOne({
             where: [

@@ -10,8 +10,6 @@ import { UserUniverse } from '../universes/entities/user-universe.entity';
   imports:[TypeOrmModule.forFeature([Topic,Subject,UserUniverse])],
   controllers: [TopicsController],
   providers: [TopicsService],
-  // TopicTasksModule sahiplik zinciri (Konu -> Ders -> Evren -> Kullanıcı)
-  // kontrolünü tekrar yazmak yerine TopicsService.findOne'ı yeniden kullanıyor.
   exports: [TopicsService],
 })
 export class TopicsModule {}

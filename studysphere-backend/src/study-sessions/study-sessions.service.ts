@@ -33,9 +33,6 @@ export class StudySessionsService {
       throw new ConflictException('Zaten aktif (veya duraklatılmış) bir çalışma oturumunuz var. Lütfen önce onu sonlandırın.');
     }
 
-    // Kronometre bir oda içinden başlatılıyorsa (roomId gönderildiyse), kullanıcının
-    // o odada gerçekten (hâlâ aktif) katılımcı olduğunu doğruluyoruz. Aksi halde
-    // odaya katılmadan o odanın kronometresini kullanabilirdi.
     if (createDto.roomId) {
       const participant = await this.roomParticipantRepository.findOne({
         where: { roomId: createDto.roomId, userId, isActive: true },
@@ -58,11 +55,6 @@ export class StudySessionsService {
       throw new NotFoundException('Belirtilen ID ile eşleşen bir konu bulunamadı.');
     }
 
-    // Pomodoro süresi artık sabit 25 dakika değil — kullanıcı istemciden
-    // (StudySessionSetupModal.tsx) serbestçe seçebiliyor. Hiç gönderilmezse
-    // (ör. eski bir istemci sürümü) geriye dönük uyumluluk için yine de
-    // 25 dakikaya (1500 sn) düşüyoruz. FREE seanslarda bu alanın hiçbir
-    // anlamı olmadığından her zaman null bırakılır.
     const DEFAULT_POMODORO_DURATION_SECONDS = 25 * 60;
     const plannedDurationSeconds =
       createDto.sessionType === SessionType.POMODORO
@@ -74,9 +66,6 @@ export class StudySessionsService {
       topicId: topic.id,
       subjectId: topic.subject.id,
       universeId: topic.subject.universe.id,
-      // Yukarıda doğrulanan roomId burada kaydedilmezse, seansın bir oda
-      // üzerinden mi (sosyal) yoksa doğrudan mı (solo) başlatıldığı hiçbir
-      // zaman bilinemez — istatistiklerdeki solo/sosyal kırılımı bu alana dayanır.
       roomId: createDto.roomId ?? null,
       sessionType: createDto.sessionType,
       goal: createDto.goal,
@@ -133,11 +122,6 @@ export class StudySessionsService {
         incorrectQuestions: savedSession.wrongCount || 0
       });
 
-      // Başarımlar, güncel kümülatif istatistiklere VE az önce biten seansın
-      // kendisine (hatasız-seans kontrolü için) ihtiyaç duyuyor — bu yüzden
-      // updateStatistic()'in döndürdüğü güncel satır burada kullanılıyor.
-      // Aynı non-fatal try/catch deseni: bir başarım hatası seansın
-      // sonlandırılmasını ASLA engellememeli.
       try {
         newAchievements = await this.achievementsService.evaluateAndUnlock(userId, {
           stats: updatedStats,
@@ -159,7 +143,6 @@ export class StudySessionsService {
       where: {
         user: { id: userId },
         sessionStatus: SessionStatus.FINISHED,
-        // sessionType verilmişse (FREE/POMODORO), geçmişi o türe göre filtreler
         ...(sessionType ? { sessionType } : {}),
       },
       order: { endTime: 'DESC' },
@@ -177,8 +160,6 @@ export class StudySessionsService {
   }
 
   async getOnGoingSession(userId: string): Promise<StudySession | null> {
-    // "Ongoing" hem ACTIVE hem PAUSED durumundaki seansı kapsamalı; aksi halde
-    // bir seans durdurulduğunda burası onu bulamaz ve istemci "aktif seans yok" sanır.
     return await this.sessionRepository.findOne({
       where: {
         user: { id: userId },
@@ -203,11 +184,6 @@ export class StudySessionsService {
   }
 
   async getSummaryById(id: string, userId: string): Promise<StudySession> {
-    // Mobildeki yeni "seans detayı" ekranı (istatistik geçmişindeki kartlara
-    // tıklanınca açılıyor) evren/ders/konu bağlamını da göstermek istiyor;
-    // önceden sadece 'topic' ilişkisi yükleniyordu. where'de 'user: { id: userId }'
-    // zaten sorguyu isteği yapan kullanıcının kendi oturumlarıyla sınırlıyor,
-    // yani bu uç zaten IDOR'a karşı güvenliydi — sadece döndürülen veri genişletildi.
     const session = await this.sessionRepository.findOne({
       where: { id, user: { id: userId } },
       relations: {
@@ -244,9 +220,6 @@ export class StudySessionsService {
 
     session.sessionStatus = SessionStatus.PAUSED;
     const saved = await this.sessionRepository.save(session);
-    // Seans bir oda üzerinden (sosyal) başlatıldıysa, aynı odadaki diğer
-    // katılımcılara bu kronometrenin duraklatıldığını anlık bildiriyoruz.
-    // Solo seanslarda roomId null olduğundan hiçbir şey yayınlanmaz.
     if (saved.roomId) {
       this.roomGateway.emitSessionPauseChanged(saved.roomId, userId, saved.id, true);
     }
@@ -291,10 +264,6 @@ export class StudySessionsService {
     .getRawMany();
 }
 
-  // Bitmiş seansları "solo" (doğrudan konu seçilerek) ve "sosyal" (bir odaya
-  // katılarak ya da oda oluşturarak) olmak üzere ikiye ayırıp her biri için
-  // toplam süre ve oturum sayısını döner. Ayrım, startSession() içinde
-  // kaydedilen roomId alanına dayanır: null => SOLO, dolu => SOCIAL.
   async getModeBreakdown(userId: string) {
     const rows = await this.sessionRepository
       .createQueryBuilder('session')

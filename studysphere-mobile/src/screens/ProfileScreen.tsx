@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -16,7 +16,7 @@ import { CustomButton } from '../components/CustomButton';
 import { useTheme, ThemePreference } from '../context/ThemeContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
 import { useNavigation } from '@react-navigation/native';
-import { useCurrentUser } from '../hooks/useUser';
+import { useCurrentUser, useUpdateProfile } from '../hooks/useUser';
 import { useProfileForm } from '../hooks/useProfileForm';
 import { usePasswordChangeForm } from '../hooks/usePasswordChangeForm';
 import { useMySessions, useRevokeSession } from '../hooks/useSessions';
@@ -47,6 +47,43 @@ export default function ProfileScreen() {
 
     const { data: sessions, isLoading: isLoadingSessions } = useMySessions();
     const { mutate: revokeSession, isPending: isRevoking, variables: revokingId } = useRevokeSession();
+
+    const { mutate: updatePreference } = useUpdateProfile();
+    const [weeklyEnabled, setWeeklyEnabled] = useState(false);
+    const [monthlyEnabled, setMonthlyEnabled] = useState(false);
+
+    useEffect(() => {
+        if (currentUser) {
+            setWeeklyEnabled(!!currentUser.weeklySummaryEmailEnabled);
+            setMonthlyEnabled(!!currentUser.monthlySummaryEmailEnabled);
+        }
+    }, [currentUser]);
+
+    const handleToggleWeeklySummary = (value: boolean) => {
+        setWeeklyEnabled(value);
+        updatePreference(
+            { weeklySummaryEmailEnabled: value },
+            {
+                onError: (error: any) => {
+                    setWeeklyEnabled(!value);
+                    Alert.alert('Güncellenemedi', getErrorMessage(error, 'Ayar kaydedilirken bir hata oluştu.'));
+                },
+            }
+        );
+    };
+
+    const handleToggleMonthlySummary = (value: boolean) => {
+        setMonthlyEnabled(value);
+        updatePreference(
+            { monthlySummaryEmailEnabled: value },
+            {
+                onError: (error: any) => {
+                    setMonthlyEnabled(!value);
+                    Alert.alert('Güncellenemedi', getErrorMessage(error, 'Ayar kaydedilirken bir hata oluştu.'));
+                },
+            }
+        );
+    };
 
     const handleRevokeSession = (id: string) => {
         Alert.alert(
@@ -153,6 +190,40 @@ export default function ProfileScreen() {
                     <Switch
                         value={notificationsEnabled}
                         onValueChange={setNotificationsEnabled}
+                        trackColor={{ true: colors.primary }}
+                    />
+                </View>
+
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>E-posta Bildirimleri</Text>
+                <View style={[styles.notificationRow, { borderColor: colors.border }]}>
+                    <View style={styles.notificationTextWrap}>
+                        <Text style={[styles.notificationLabel, { color: colors.text }]}>
+                            Haftalık çalışma özeti
+                        </Text>
+                        <Text style={[styles.helperText, { color: colors.textSecondary, marginLeft: 0, marginTop: 2 }]}>
+                            Her Pazartesi, geçen haftaki çalışma sürenizi ve istatistiklerinizi özetleyen bir e-posta alın.
+                        </Text>
+                    </View>
+                    <Switch
+                        value={weeklyEnabled}
+                        onValueChange={handleToggleWeeklySummary}
+                        trackColor={{ true: colors.primary }}
+                    />
+                </View>
+                <View style={[styles.notificationRow, { borderColor: colors.border, marginTop: 8 }]}>
+                    <View style={styles.notificationTextWrap}>
+                        <Text style={[styles.notificationLabel, { color: colors.text }]}>
+                            Aylık çalışma özeti
+                        </Text>
+                        <Text style={[styles.helperText, { color: colors.textSecondary, marginLeft: 0, marginTop: 2 }]}>
+                            Her ayın başında, geçen ayki çalışma sürenizi ve istatistiklerinizi özetleyen bir e-posta alın.
+                        </Text>
+                    </View>
+                    <Switch
+                        value={monthlyEnabled}
+                        onValueChange={handleToggleMonthlySummary}
                         trackColor={{ true: colors.primary }}
                     />
                 </View>

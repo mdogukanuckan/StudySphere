@@ -48,7 +48,7 @@ export class StudySessionsController {
 
   @Get('performance/subjects')
   async getSubjectPerformance(@Req() req: any) {
-    const userId = req.user.userId; // JWT'den gelen ID
+    const userId = req.user.userId;
     return await this.studySessionsService.getSubjectPerformance(userId);
   }
 

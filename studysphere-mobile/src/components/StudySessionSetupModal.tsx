@@ -42,7 +42,7 @@ export const StudySessionSetupModal: React.FC<Props> = ({ visible, topicName, on
           </Text>
 
           <View style={styles.optionsContainer}>
-            {/* Serbest Çalışma Seçeneği */}
+            {}
             <TouchableOpacity 
               style={[styles.optionCard, selectedType === 'FREE' && styles.optionCardActive]}
               onPress={() => setSelectedType('FREE')}
@@ -51,7 +51,7 @@ export const StudySessionSetupModal: React.FC<Props> = ({ visible, topicName, on
               <Text style={styles.optionDesc}>Süreyi ileri doğru sayar. İstediğin zaman bitirirsin.</Text>
             </TouchableOpacity>
 
-            {/* Pomodoro Seçeneği */}
+            {}
             <TouchableOpacity
               style={[styles.optionCard, selectedType === 'POMODORO' && styles.optionCardActive]}
               onPress={() => setSelectedType('POMODORO')}
@@ -238,7 +238,6 @@ const createStyles = (colors: ThemeColors, globalStyles: GlobalStyles) => StyleS
     marginRight: SPACING.md,
   },
   cancelText: {
-    // Aynı colors.border yanlış kullanımı burada da vardı.
     color: colors.textSecondary,
     fontWeight: 'bold',
   },

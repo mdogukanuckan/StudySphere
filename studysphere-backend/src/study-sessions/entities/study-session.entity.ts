@@ -39,11 +39,6 @@ export class StudySession {
     @Column({ name: 'topic_id', type: 'uuid', nullable: true })
     topicId !: string | null;
 
-    // Seansın bir çalışma odası üzerinden mi (sosyal: oluşturma/katılma) yoksa
-    // doğrudan konu seçilerek mi (solo) başlatıldığını ayırt etmek için.
-    // Oda üzerinden başlatılan seanslarda doldurulur (bkz.
-    // StudySessionsService.startSession). İstatistiklerdeki solo/sosyal kırılımı
-    // bu alana göre yapılır: null => SOLO, dolu => SOCIAL.
     @Column({ name: 'room_id', type: 'uuid', nullable: true })
     @Index()
     roomId !: string | null;
@@ -51,15 +46,6 @@ export class StudySession {
     @Column({ name: 'goal', type: 'varchar', length: 255, nullable: true })
     goal !: string | null;
 
-    // 'timestamp' (saat dilimsiz) yerine 'timestamptz' kullanıyoruz: Postgres bu
-    // sütunu her zaman mutlak bir an (UTC) olarak saklar ve geri okurken hiçbir
-    // saat dilimi varsayımına ihtiyaç duymaz. Önceki 'timestamp' türüyle, bu
-    // değer Node sürecinin yerel saat dilimine (bu projede Türkiye, UTC+3) göre
-    // yorumlanabiliyordu — bu da bir oda/kronometre az önce başlamışken bile
-    // "3 saattir çalışıyor" gibi görünmesine yol açan kök nedendi (bkz.
-    // RoomDetail/ActiveSessionWidget'taki "3 saat" hatası — mobil taraftaki
-    // parseServerDate düzeltmesi yalnızca saat dilimi eksik gelen ham metinleri
-    // kapsıyordu, sunucunun kendisinin yanlış yorumladığı bir değeri değil).
     @Column({ name: 'start_time', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
     @Index()
     startTime !: Date;
@@ -70,10 +56,6 @@ export class StudySession {
     @Column({ name: 'duration_seconds', type: 'integer', default: 0 })
     durationSeconds !: number;
 
-    // Kullanıcının Pomodoro seansı başlatırken seçtiği hedef süre (saniye).
-    // Yalnızca POMODORO seanslarında doldurulur; FREE seanslarda null kalır.
-    // Bu alandan önce oluşturulmuş eski seanslarda da null olur — mobil taraf
-    // bu durumda 25 dakikaya (varsayılan) düşer (bkz. ActiveSessionWidget.tsx).
     @Column({ name: 'planned_duration_seconds', type: 'integer', nullable: true })
     plannedDurationSeconds !: number | null;
 

@@ -107,10 +107,6 @@ export class UserStatisticsService {
       await queryRunner.release();
     }
   }
-  // Başarımlar: kümülatif "hatasız seans" sayacını 1 artırır. updateStatistic()
-  // ile aynı pessimistic_write kilit deseni — AchievementsService.evaluateAndUnlock()
-  // tarafından, yalnızca suistimal kontrolünden geçen seanslar için çağrılır
-  // (bkz. achievements/achievement.catalog.ts).
   async incrementErrorlessSessions(userId: string): Promise<UserStatistic> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();

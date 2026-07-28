@@ -29,10 +29,6 @@ export function useProfileForm(currentUser: CurrentUser | undefined) {
     }
 
     const trimmedEmail = email.trim();
-    // Backend e-posta degisince isEmailVerified'i sifirliyor (bkz.
-    // UsersService.update) — burada da yeni adrese otomatik bir dogrulama
-    // kodu gonderiyoruz ki kullanici tekrar "kod iste" butonuna basmak
-    // zorunda kalmasin.
     const isChangingEmail = !!currentUser?.email && trimmedEmail !== currentUser.email;
 
     updateProfile(

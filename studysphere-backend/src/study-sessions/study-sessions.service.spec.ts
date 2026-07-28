@@ -14,10 +14,6 @@ describe('StudySessionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StudySessionsService,
-        // Üç repository, UserStatisticsService (istatistik güncellemek için)
-        // ve artık StudyRoomGateway (kronometre duraklat/devam yayınları için)
-        // constructor'da bekleniyordu; hiçbiri sağlanmadan compile() hiç
-        // başarılı olmuyordu.
         { provide: getRepositoryToken(StudySession), useValue: {} },
         { provide: getRepositoryToken(Topic), useValue: {} },
         { provide: getRepositoryToken(RoomParticipant), useValue: {} },

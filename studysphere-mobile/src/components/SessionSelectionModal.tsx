@@ -16,7 +16,6 @@ interface Props {
 export const SessionSelectionModal: React.FC<Props> = ({ visible, onClose, onTopicSelect }) => {
     const { colors, globalStyles } = useTheme();
     const styles = useMemo(() => createStyles(colors, globalStyles), [colors, globalStyles]);
-    // Sihirbazın adımlarını tutuyoruz: 1 = Evren, 2 = Ders, 3 = Konu
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [selectedUniverseId, setSelectedUniverseId] = useState<string | null>(null);
     const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
@@ -33,7 +32,6 @@ export const SessionSelectionModal: React.FC<Props> = ({ visible, onClose, onTop
     const { data: subjects, isLoading: subjectsLoading } = useSubjects(selectedUniverseId || '');
     const { data: topics, isLoading: topicsLoading } = useTopics(selectedSubjectId || '');
 
-    // --- Aksiyon Fonksiyonları ---
     const handleUniverseSelect = (id: string) => {
         setSelectedUniverseId(id);
         setStep(2);
@@ -45,8 +43,8 @@ export const SessionSelectionModal: React.FC<Props> = ({ visible, onClose, onTop
     };
 
     const handleTopicSelect = (topic: Topic) => {
-        onTopicSelect(topic); // Seçilen konuyu üst bileşene (StudyTabScreen) yolla
-        onClose(); // Modalı kapat
+        onTopicSelect(topic);
+        onClose();
     };
 
     const handleBack = () => {
@@ -150,7 +148,7 @@ const createStyles = (colors: ThemeColors, globalStyles: GlobalStyles) => StyleS
         backgroundColor: colors.surface,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        height: '60%', // Ekranın %60'ını kaplasın (Bottom Sheet hissiyatı)
+        height: '60%',
         padding: SPACING.lg,
        
     },
@@ -168,7 +166,7 @@ const createStyles = (colors: ThemeColors, globalStyles: GlobalStyles) => StyleS
         padding: SPACING.xs,
     },
     backButtonPlaceholder: {
-        width: 50, // Başlığın ortalanması için görünmez alan
+        width: 50,
     },
     backText: {
         color: colors.primary,

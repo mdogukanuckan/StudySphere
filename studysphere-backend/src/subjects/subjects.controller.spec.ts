@@ -9,8 +9,6 @@ describe('SubjectsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SubjectsController],
       providers: [
-        // SubjectsService gerçek repository'lere bağlı; DI'nin çözülebilmesi
-        // için boş bir mock veriyoruz.
         { provide: SubjectsService, useValue: {} },
       ],
     }).compile();

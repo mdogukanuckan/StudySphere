@@ -69,6 +69,12 @@ export class User {
     @Column({ name: 'password_reset_last_sent_at', type: 'timestamp', nullable: true })
     passwordResetLastSentAt !: Date | null
 
+    @Column({ name: 'weekly_summary_email_enabled', type: 'boolean', default: false })
+    weeklySummaryEmailEnabled !: boolean;
+
+    @Column({ name: 'monthly_summary_email_enabled', type: 'boolean', default: false })
+    monthlySummaryEmailEnabled !: boolean;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt !: Date;
 

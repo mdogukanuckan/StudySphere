@@ -23,8 +23,6 @@ export const universeService = {
         return response.data;
     },
 
-    // Backend artık geçmiş/arşivlenmiş kayıtlar yüzünden kalıcı silemediği
-    // evreni arşivliyor; { archived: true/false } ile bunu ayırt edebiliyoruz.
     deleteUniverse : async(id:string):Promise<DeleteUniverseResult> => {
         const response = await apiClient.delete<DeleteUniverseResult>(`/universes/${id}`);
         return response.data;

@@ -90,11 +90,6 @@ export class StudyRoomService {
       { closedStatus: RoomStatus.CLOSED, closedRoomVisibilityCutoff },
     );
 
-    // Gizli odalar genel listede tamamen gizli: sadece odanın sahibine veya
-    // odada hâlâ aktif bir katılımcısı olan kullanıcıya gösteriliyor. Diğer
-    // herkes için bu oda hiç var olmamış gibi davranıyor — bulunması ancak
-    // davet kodu (joinRoomByCode) veya bir arkadaş daveti (room-invites
-    // modülü) üzerinden mümkün.
     query.andWhere(
       `(room.is_private = false OR room.owner_id = :userId OR EXISTS (
         SELECT 1 FROM room_pariticipants rp
@@ -177,19 +172,14 @@ export class StudyRoomService {
       });
       await queryRunner.manager.save(participant);
 
-      // Oda sayısını artır
       room.currentParticipants += 1;
       await queryRunner.manager.save(room);
 
       await queryRunner.commitTransaction();
-      // Aynı odadaki diğer katılımcılara (kanala bağlıysalar) anlık haber ver.
-      // Gerçek veri her zaman REST'ten geliyor; bu sadece "yenile" sinyali.
       this.gateway.emitParticipantJoined(roomId, userId);
       return participant;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      // bkz. createRoom'daki aynı yorum: "tek aktif oda" kuralının asıl garantisi
-      // artık DB'deki partial unique index'ten geliyor, burada sadece dostça mesaja çeviriyoruz.
       if (this.isActiveParticipantConflict(error)) {
         throw new BadRequestException(
           'Zaten aktif bir odadasınız. Bu odaya katılmak için önce mevcut odadan ayrılın (oda sahibiyseniz kapatın).',
@@ -201,18 +191,12 @@ export class StudyRoomService {
     }
   }
 
-  // Davet kodu ile katılma — kodu çözüp gerçek oda id'sine indirger, ardından
-  // asıl kapasite/kilit/çakışma kontrollerinin tamamını yapan joinRoom'u
-  // yeniden kullanır (mantığı tekrar etmemek için).
   async joinRoomByCode(userId: string, code: string): Promise<RoomParticipant> {
     const room = await this.roomRepository.findOne({ where: { inviteCode: code, isPrivate: true } });
     if (!room) throw new NotFoundException('Geçersiz davet kodu.');
     return this.joinRoom(userId, room.id);
   }
 
-  // 'kicked': kickParticipant() bu metodu yeniden kullanıyor (bkz. aşağısı) —
-  // odadaki diğer katılımcılara "ayrıldı" mı yoksa "atıldı" mı olduğunu ayrı
-  // bir olay alanı olarak iletebilmek için eklendi.
   async leaveRoom(userId: string, roomId: string, kicked: boolean = false): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -256,13 +240,11 @@ export class StudyRoomService {
     await queryRunner.startTransaction();
 
     try {
-      // Odayı kapat
       room.status = RoomStatus.CLOSED;
       room.currentParticipants = 0;
       room.closedAt = new Date();
       await queryRunner.manager.save(room);
 
-      // Aktif tüm katılımcıları (owner dahil) odadan çıkar
       await queryRunner.manager.update(
         RoomParticipant,
         { roomId: roomId, isActive: true },
@@ -270,9 +252,6 @@ export class StudyRoomService {
       );
 
       await queryRunner.commitTransaction();
-      // Kapatılırken odada aktif katılımcı varsa (owner hariç, o zaten
-      // kapatma isteğini kendisi yaptı), onlara haber ver — aksi halde
-      // ekranlarını kapatıp açana kadar odanın hâlâ açık olduğunu sanırlardı.
       this.gateway.emitRoomClosed(roomId);
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -307,7 +286,7 @@ export class StudyRoomService {
     if (room.ownerId !== ownerId) throw new ForbiddenException('Sadece oda sahibi üye atabilir.');
     if (ownerId === targetUserId) throw new BadRequestException('Kendinizi atamazsınız.');
 
-    await this.leaveRoom(targetUserId, roomId, true); // Reuse leave logic, kicked=true
+    await this.leaveRoom(targetUserId, roomId, true);
   }
 
   async getRoomParticipants(roomId: string) {
@@ -319,13 +298,6 @@ export class StudyRoomService {
       relations: { user: true },
     });
 
-    // Kronometresi şu an duraklatılmış olan katılımcıları buluyoruz — bu,
-    // 'currentStatus' (WORKING/BREAK, elle değiştirilen oda-içi durum) alanından
-    // AYRI bir kavram: StudySession.sessionStatus (ActiveSessionWidget'taki
-    // duraklat/devam butonu). WebSocket üzerinden anlık yayınlanan
-    // session:paused/resumed olaylarının (bkz. study-room.gateway.ts) REST
-    // tarafındaki kalıcı karşılığı burası — ekran yeniden açıldığında da
-    // doğru gösterilsin diye.
     const pausedSessions = await this.studySessionRepository.find({
       where: { roomId, sessionStatus: SessionStatus.PAUSED },
     });
@@ -351,8 +323,6 @@ export class StudyRoomService {
     });
     if (!activeSession) return;
 
-    // Oda gerçekte kapatılmış (status: CLOSED) ama katılımcı kaydı eski/bozuk bir kapatma
-    // akışından dolayı aktif kalmışsa, burada kendiliğinden temizleyip kullanıcıyı bloklamıyoruz.
     if (!activeSession.room || activeSession.room.status === RoomStatus.CLOSED) {
       activeSession.isActive = false;
       activeSession.leftAt = new Date();
@@ -365,16 +335,10 @@ export class StudyRoomService {
     );
   }
 
-  // RoomParticipant entity'sindeki partial unique index (bkz. o dosyadaki yorum),
-  // Postgres'te "23505 unique_violation" hatası olarak geri döner. checkUserActiveInAnyRoom
-  // ön-kontrolünü yarış durumunda atlatan istekler burada yakalanıyor.
   private isActiveParticipantConflict(error: unknown): boolean {
     return !!error && typeof error === 'object' && (error as { code?: string }).code === '23505';
   }
 
-  // 6 haneli rastgele davet kodu üretir, DB'deki çakışmaları (çok düşük
-  // ihtimal ama 1.000.000 kombinasyonluk alan için imkansız değil) birkaç kez
-  // deneyerek eler. Aynı transaction'ın manager'ı üzerinden kontrol ediliyor.
   private async generateUniqueInviteCode(manager: EntityManager): Promise<string> {
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = Math.floor(100000 + Math.random() * 900000).toString();

@@ -35,8 +35,6 @@ export class RoomInvitesService {
         private readonly studyRoomService: StudyRoomService,
     ) { }
 
-    // İki kullanıcı arasında (yön fark etmeksizin) kabul edilmiş bir
-    // arkadaşlık var mı — bkz. friends.service.ts'teki aynı desen.
     private async areFriends(userAId: string, userBId: string): Promise<boolean> {
         const relationship = await this.friendshipRepository.findOne({
             where: [
@@ -131,10 +129,6 @@ export class RoomInvitesService {
         return invite;
     }
 
-    // Katılma işleminin kendisi (kapasite, kilit, "tek aktif oda" çakışması vb.)
-    // tamamen studyRoomService.joinRoom'a bırakılıyor — burada tekrar
-    // edilmiyor. joinRoom hata fırlatırsa davet PENDING kalır, kullanıcı
-    // isterse (örn. mevcut odadan ayrıldıktan sonra) tekrar deneyebilir.
     async acceptInvite(userId: string, inviteId: string): Promise<void> {
         const invite = await this.findOwnedPendingInvite(userId, inviteId);
         await this.studyRoomService.joinRoom(userId, invite.roomId);

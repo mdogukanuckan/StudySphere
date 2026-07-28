@@ -10,8 +10,6 @@ export class CreateTopicTaskDto {
     @IsNotEmpty({ message: 'Konu alanı boş bırakılamaz' })
     topicId !: string;
 
-    // Göreve özel not — opsiyonel, oluşturma anında ya da sonradan (bkz.
-    // UpdateTopicTaskDto) eklenebilir.
     @IsString()
     @IsOptional()
     notes ?: string;

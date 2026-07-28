@@ -12,14 +12,7 @@ import { AchievementsModule } from '../achievements/achievements.module';
   imports: [
     TypeOrmModule.forFeature([StudySession, Topic, RoomParticipant]),
     forwardRef(() => UserStatisticsModule),
-    // StudyRoomGateway'i kullanabilmek için (bkz. study-sessions.service.ts
-    // pauseSession/resumeSession — oda üzerinden başlatılan bir seans
-    // duraklatılıp devam ettirildiğinde odadaki diğer katılımcılara haber
-    // verilir).
     StudyRoomsModule,
-    // AchievementsModule burada forwardRef GEREKMİYOR: AchievementsModule
-    // StudySessionsModule'e geri dönmüyor (yalnızca UserStatisticsModule'e
-    // bağımlı), yani yeni bir döngü oluşmuyor.
     AchievementsModule,
   ],
   providers: [StudySessionsService],

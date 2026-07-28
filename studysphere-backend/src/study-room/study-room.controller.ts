@@ -14,7 +14,6 @@ import { StudyRoomService } from './study-room.service';
 export class StudyRoomsController {
   constructor(private readonly studyRoomsService: StudyRoomService) {}
 
-  // Dogrulanmamis e-posta ile oda olusturulamaz — bkz. EmailVerifiedGuard.
   @Post()
   @UseGuards(EmailVerifiedGuard)
   async createRoom(@Req() req, @Body() createStudyRoomDto: CreateStudyRoomDto) {
@@ -26,9 +25,6 @@ export class StudyRoomsController {
     return await this.studyRoomsService.getRooms(filterDto, req.user.userId);
   }
 
-  // Davet kodu ile katılma — gizli bir odaya doğrudan oda id'si bilinmeden
-  // katılmayı sağlar. Normal katılma (:id/join) gibi e-posta doğrulaması
-  // gerektiriyor.
   @Post('join-by-code')
   @UseGuards(EmailVerifiedGuard)
   async joinByCode(@Req() req, @Body() joinByCodeDto: JoinByCodeDto) {
@@ -51,7 +47,6 @@ export class StudyRoomsController {
     return { message: 'Oda başarıyla kapatıldı.' };
   }
 
-  // Dogrulanmamis e-posta ile mevcut bir odaya katilinamaz — bkz. EmailVerifiedGuard.
   @Post(':id/join')
   @UseGuards(EmailVerifiedGuard)
   async joinRoom(@Req() req, @Param('id') id: string) {

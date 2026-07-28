@@ -67,10 +67,6 @@ export class UsersService {
       }
     }
 
-    // E-posta degistiriliyorsa dogrulama durumu sifirlanir — kullanici yeni
-    // adresini tekrar dogrulamak zorunda kalir (bkz. AuthService.sendVerificationCode,
-    // EmailVerifiedGuard). Aksi halde biri hesabinin mailini rastgele bir adrese
-    // cevirip yine "dogrulanmis" gorunebilirdi.
     const isChangingEmail = !!safeUpdateDto.email && safeUpdateDto.email !== user.email;
     if (isChangingEmail) {
       user.isEmailVerified = false;
@@ -94,17 +90,10 @@ export class UsersService {
     await this.userRepository.update(id, { passwordHash });
   }
 
-  // "Arkadaşlarım" ekranındaki çevrimiçi/çevrimdışı durumu için (bkz.
-  // FriendsService.computePresence) — mobil taraf uygulama ön plandayken
-  // periyodik olarak bu ucu çağırıyor (bkz. useHeartbeat.ts). Hafif bir
-  // update olduğu için tam entity'yi çekip save etmek yerine doğrudan
-  // update() kullanılıyor.
   async touchLastActiveAt(id: string): Promise<void> {
     await this.userRepository.update(id, { lastActiveAt: new Date() });
   }
 
-  // E-posta dogrulama (OTP) icin — bkz. AuthService.sendVerificationCode /
-  // verifyEmail. Sadece dogrulama ile ilgili kolonlari secerek getiriyoruz.
   async getVerificationState(id: string): Promise<Pick<User,
     'id' | 'email' | 'isEmailVerified' | 'emailVerificationCode' |
     'emailVerificationCodeExpiresAt' | 'emailVerificationAttempts' | 'emailVerificationLastSentAt'
@@ -149,7 +138,6 @@ export class UsersService {
     });
   }
 
-  // EmailVerifiedGuard tarafindan kullanilir (bkz. auth/guards/email-verified.guard.ts).
   async isEmailVerified(id: string): Promise<boolean> {
     const user = await this.userRepository.findOne({ where: { id }, select: { id: true, isEmailVerified: true } });
     if (!user) {
@@ -158,10 +146,6 @@ export class UsersService {
     return user.isEmailVerified;
   }
 
-  // Sifre sifirlama (forgot password) icin — bkz. AuthService.forgotPassword /
-  // resetPassword. E-posta dogrulama koduyla AYNI kolonlari degil, ayri
-  // password_reset_* kolonlarini kullanir (farkli amac, farkli suresi/deneme
-  // sayaci — birbirine karismasin diye).
   async setPasswordResetCode(id: string, codeHash: string, expiresAt: Date): Promise<void> {
     await this.userRepository.update(id, {
       passwordResetCode: codeHash,

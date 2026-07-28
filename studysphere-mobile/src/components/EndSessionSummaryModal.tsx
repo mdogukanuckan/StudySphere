@@ -206,8 +206,6 @@ const createStyles = (colors: ThemeColors, globalStyles: GlobalStyles) => StyleS
     marginRight: SPACING.md,
   },
   cancelText: {
-    // Önceden yanlışlıkla colors.border (kenarlık rengi) kullanılıyordu —
-    // karanlık temada yüzeye çok yakın olduğundan bu metin okunmuyordu.
     color: colors.textSecondary,
     fontWeight: 'bold',
   },

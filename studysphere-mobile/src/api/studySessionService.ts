@@ -1,4 +1,4 @@
-import apiClient from './client'; // Kendi yapılandırdığın axios istemcisi
+import apiClient from './client';
 import { StartSessionRequest, StudySession, StudyHistoryResponse, SessionType, EndSessionResponse } from '../types/studySession';
 
 export interface EndSessionPayload {
@@ -34,7 +34,6 @@ export const studySessionService = {
     return response.data;
   },
   getOngoingSession: async (): Promise<StudySession | null> => {
-    // Eğer aktif seans yoksa backend'in yapısına göre boş dönebilir
     const response = await apiClient.get<StudySession | null>('/study-sessions/active');
     return response.data;
   },

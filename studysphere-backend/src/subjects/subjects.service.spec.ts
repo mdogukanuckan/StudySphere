@@ -12,8 +12,6 @@ describe('SubjectsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SubjectsService,
-        // Üç repository constructor'da bekleniyordu; hiçbiri sağlanmadan
-        // compile() hiç başarılı olmuyordu.
         { provide: getRepositoryToken(Subject), useValue: {} },
         { provide: getRepositoryToken(Universe), useValue: {} },
         { provide: getRepositoryToken(UserUniverse), useValue: {} },

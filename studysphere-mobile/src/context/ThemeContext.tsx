@@ -1,4 +1,3 @@
-// src/context/ThemeContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
@@ -31,7 +30,6 @@ const THEME_PREFERENCE_KEY = 'theme_preference';
 const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-    // Cihazın sistem genelindeki açık/koyu mod tercihi ('light' | 'dark' | null | undefined).
     const systemScheme = useColorScheme();
     const [preference, setPreferenceState] = useState<ThemePreference>('system');
 

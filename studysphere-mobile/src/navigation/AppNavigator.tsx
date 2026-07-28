@@ -1,4 +1,3 @@
-// src/navigation/AppNavigator.tsx
 import React, { useMemo } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { useAuthContext } from '../context/AuthContext';

@@ -27,12 +27,10 @@ export default function TopicScreen() {
 
     const { subjectId, subjectName } = route.params;
 
-    // --- Form Modal State (create + edit ortak) ---
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [topicName, setTopicName] = useState('');
     const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
-    // --- Seans Kurulum Akışı (bkz. hooks/useStartSessionFlow.ts) ---
     const sessionFlow = useStartSessionFlow();
 
     const { data: topics, isLoading, isRefetching, refetch } = useTopics(subjectId);

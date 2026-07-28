@@ -6,9 +6,6 @@ import { CreateTopicTaskDto } from './dto/create-topic-task.dto';
 import { UpdateTopicTaskDto } from './dto/update-topic-task.dto';
 import { TopicsService } from '../topics/topics.service';
 
-// "Görevlerim" ekranının "Notlar" sekmesi için: kullanıcının görev/not
-// eklediği konuları, hangi derse ait olduklarıyla birlikte döner (bkz.
-// getMyOverview).
 export interface TopicTaskOverviewItem {
   topicId: string;
   topicName: string;
@@ -20,10 +17,6 @@ export interface TopicTaskOverviewItem {
   lastActivityAt: string;
 }
 
-// "Görevlerim" ekranının "Görevler" sekmesi için: tek bir konuya bağlı
-// olmadan, kullanıcının SAHİP OLDUĞU tüm konulardaki tüm görevleri düz
-// (flat) bir liste olarak, hangi ders/konuya ait olduklarıyla birlikte
-// döner (bkz. getMyTasks).
 export interface TopicTaskWithContext {
   id: string;
   title: string;
@@ -43,9 +36,6 @@ export class TopicTasksService {
   constructor(
     @InjectRepository(TopicTask)
     private readonly topicTaskRepository: Repository<TopicTask>,
-    // Sahiplik zinciri (Konu -> Ders -> Evren -> Kullanıcı) doğrulamasını
-    // burada tekrar yazmak yerine TopicsService.findOne'ı yeniden kullanıyoruz
-    // (bkz. TopicsModule.exports).
     private readonly topicsService: TopicsService,
   ) {}
 
@@ -70,7 +60,6 @@ export class TopicTasksService {
     if (!task) {
       throw new NotFoundException('Aradığınız görev bulunamadı.');
     }
-    // Görevin kendi konusu üzerinden sahiplik zincirini doğruluyoruz.
     await this.topicsService.findOne(task.topicId, userId);
     return task;
   }
@@ -86,11 +75,6 @@ export class TopicTasksService {
     await this.topicTaskRepository.remove(task);
   }
 
-  // Kullanıcının SAHİP OLDUĞU (Ders -> Evren -> Kullanıcı zinciri, TopicsService.
-  // findOne'daki verifySubjectOwnership ile aynı zincir) tüm konular arasında,
-  // en az bir görevi VEYA boş olmayan bir notu olanları döner. Kronometre
-  // ekranındaki "hangi derse hangi konuya ekleme yaptın" şeridi için —
-  // topic-tasks + topics.notes tek bir sorguda birleştiriliyor, N+1 yok.
   async getMyOverview(userId: string): Promise<TopicTaskOverviewItem[]> {
     const rows = await this.topicTaskRepository.manager
       .createQueryBuilder()
@@ -124,10 +108,6 @@ export class TopicTasksService {
     }));
   }
 
-  // "Görevlerim" ekranının "Görevler" sekmesi için: kullanıcının sahip
-  // olduğu tüm konulardaki TÜM görevleri (tek bir konuyla sınırlı olmadan)
-  // düz bir liste halinde, ders/konu etiketiyle birlikte döner. Tamamlanmamış
-  // görevler önce, sonra en son eklenen en üstte.
   async getMyTasks(userId: string): Promise<TopicTaskWithContext[]> {
     const rows = await this.topicTaskRepository.manager
       .createQueryBuilder()

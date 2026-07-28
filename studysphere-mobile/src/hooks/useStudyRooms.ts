@@ -49,7 +49,6 @@ export const useCreateRoom = () => {
   return useMutation({
     mutationFn: (payload: CreateRoomDto) => studyRoomApi.createRoom(payload),
     onSuccess: () => {
-      // Yeni oda kurulunca listeyi invalidate edip yeniden çektiriyoruz
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
     },
   });

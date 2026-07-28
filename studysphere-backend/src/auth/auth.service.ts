@@ -8,13 +8,14 @@ import { JwtService } from '@nestjs/jwt';
 import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
 import { RefreshTokenDto } from 'src/refresh-tokens/dto/refresh-token.dto';
 import { MailService } from '../mail/mail.service';
+import { DevicesService } from '../devices/devices.service';
 
-const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 gün
-const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000; // 10 dakika
-const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000; // 60 saniye
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
-const PASSWORD_RESET_CODE_TTL_MS = 10 * 60 * 1000; // 10 dakika
-const PASSWORD_RESET_RESEND_COOLDOWN_MS = 60 * 1000; // 60 saniye
+const PASSWORD_RESET_CODE_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_PASSWORD_RESET_ATTEMPTS = 5;
 
 @Injectable()
@@ -26,6 +27,7 @@ export class AuthService {
         private readonly jwtService: JwtService,
         private readonly refreshTokensService: RefreshTokensService,
         private readonly mailService: MailService,
+        private readonly devicesService: DevicesService,
     ) { }
 
     async register(registerDto: RegisterDto) {
@@ -128,9 +130,24 @@ export class AuthService {
             throw new UnauthorizedException('Geçersiz e-posta veya şifre.');
         }
 
-        const payload = { sub: user.id, email: user.email, role: user.role }; 
+        const payload = { sub: user.id, email: user.email, role: user.role };
         const accessToken = await this.jwtService.signAsync(payload);
         const { token: refreshToken } = await this.refreshTokensService.create(user.id, REFRESH_TOKEN_TTL_MS);
+
+        this.devicesService
+            .checkAndRecordDevice(user.id, loginDto.deviceId, loginDto.deviceName)
+            .then((result) => {
+                if (result.isNewDevice) {
+                    this.mailService
+                        .sendNewDeviceLoginAlert(user.email, loginDto.deviceName ?? 'Bilinmeyen cihaz')
+                        .catch((error) => {
+                            this.logger.warn(`Yeni cihaz bildirimi gönderilemedi: ${(error as Error)?.message}`);
+                        });
+                }
+            })
+            .catch((error) => {
+                this.logger.warn(`Cihaz kaydı sırasında hata oluştu: ${(error as Error)?.message}`);
+            });
 
         return {
             access_token: accessToken,
@@ -149,7 +166,6 @@ export class AuthService {
             throw new UnauthorizedException('Kullanıcı bulunamadı.');
         }
 
-        // Rotation: eski token'ı iptal edip yenisini oluşturuyoruz.
         await this.refreshTokensService.revoke(existing.id);
         const { token: newRefreshToken } = await this.refreshTokensService.create(user.id, REFRESH_TOKEN_TTL_MS);
 
@@ -186,7 +202,6 @@ export class AuthService {
 
         await this.refreshTokensService.revokeAllForUser(userId);
 
-        // Bildirim gonderimi basarisiz olsa bile sifre degisikligi geri alinmaz.
         this.mailService.sendPasswordChangedNotice(user.email).catch((error) => {
             this.logger.warn(`Şifre değişikliği bildirimi gönderilemedi: ${(error as Error)?.message}`);
         });
@@ -194,9 +209,6 @@ export class AuthService {
         return { message: 'Şifre başarıyla güncellendi.' };
     }
 
-    // Hesabin var olup olmadigini sizdirmamak icin basarili/basarisiz her durumda
-    // AYNI genel mesaj donuyoruz — aksi halde bu uc nokta e-posta kayitli mi diye
-    // sorgulamak icin kullanilabilirdi.
     private readonly FORGOT_PASSWORD_GENERIC_RESPONSE = {
         message: 'Bu e-posta adresine kayıtlı bir hesap varsa, şifre sıfırlama kodu gönderildi.',
     };

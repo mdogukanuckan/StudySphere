@@ -27,8 +27,6 @@ export class CreateStudyRoomDto {
     @Max(50)
     maxParticipants !: number;
 
-    // true ise oda genel listede gizlenir, sadece davet kodu/arkadaş daveti ile
-    // bulunabilir — bkz. study-room.entity.ts'teki isPrivate/inviteCode yorumu.
     @IsBoolean()
     @IsOptional()
     isPrivate ?: boolean;

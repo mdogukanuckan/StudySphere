@@ -43,7 +43,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       style={[
         styles.button,
         isDisabled && styles.disabled,
-        style // Dışarıdan gelen ekstra stilleri eziyoruz
+        style
       ]}
       disabled={isDisabled}
       activeOpacity={0.8}
@@ -134,7 +134,7 @@ export const RoomListScreen = () => {
 
   return (
     <SafeAreaView style={globalStyles.screenContainer} edges={['top']}>
-      {/* Üst Bilgi (Header) Alanı */}
+      {}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Çalışma Odaları</Text>
         <PrimaryButton
@@ -208,7 +208,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     opacity: 0.6,
   },
   text: {
-    color: colors.surface, // Buton içi yazı rengi (Saf beyaz)
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '600',
   },

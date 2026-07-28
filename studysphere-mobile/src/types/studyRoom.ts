@@ -12,8 +12,6 @@ export interface StudyRoom {
   ownerId: string;
   owner?: { id: string; username: string };
   isPrivate: boolean;
-  // Sadece isPrivate=true odalarda, ve sadece backend'in döndürdüğü kadarıyla
-  // dolu (bkz. study-room.entity.ts#inviteCode) — 6 haneli davet kodu.
   inviteCode?: string | null;
   status: 'ACTIVE' | 'CLOSED';
   createdAt: string;

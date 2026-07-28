@@ -2,6 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
+export interface StudySummaryData {
+  periodLabel: string;
+  totalDurationSeconds: number;
+  sessionCount: number;
+  daysStudied: number;
+  questionCount: number;
+  correctCount: number;
+  wrongCount: number;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -82,6 +92,64 @@ export class MailService {
       });
     } catch (error) {
       this.logger.error(`Şifre değişikliği bildirimi gönderilemedi (${to}): ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  async sendNewDeviceLoginAlert(to: string, deviceName: string): Promise<void> {
+    const loginTime = new Date().toLocaleString('tr-TR', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+    try {
+      await this.transporter.sendMail({
+        from: `"StudySphere" <${this.fromAddress}>`,
+        to,
+        subject: 'StudySphere hesabınıza yeni bir cihazdan giriş yapıldı',
+        text: `Hesabınıza ${loginTime} tarihinde "${deviceName}" adlı yeni bir cihazdan giriş yapıldı.\n\nBu işlemi siz yapmadıysanız hemen şifrenizi değiştirin ve "Aktif Oturumlar" bölümünden bilmediğiniz oturumları sonlandırın.`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px;">
+            <p>Hesabınıza <strong>${loginTime}</strong> tarihinde <strong>${deviceName}</strong> adlı yeni bir cihazdan giriş yapıldı.</p>
+            <p style="color: #b00020; font-weight: 600;">Bu işlemi siz yapmadıysanız hemen şifrenizi değiştirin ve "Aktif Oturumlar" bölümünden bilmediğiniz oturumları sonlandırın.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(`Yeni cihaz bildirimi gönderilemedi (${to}): ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  async sendStudySummary(to: string, data: StudySummaryData): Promise<void> {
+    const hours = Math.floor(data.totalDurationSeconds / 3600);
+    const minutes = Math.floor((data.totalDurationSeconds % 3600) / 60);
+    const durationText = hours > 0 ? `${hours} saat ${minutes} dakika` : `${minutes} dakika`;
+
+    try {
+      await this.transporter.sendMail({
+        from: `"StudySphere" <${this.fromAddress}>`,
+        to,
+        subject: `StudySphere çalışma özetiniz: ${data.periodLabel}`,
+        text: `${data.periodLabel} dönemindeki çalışma özetiniz:\n\n` +
+          `Toplam çalışma süresi: ${durationText}\n` +
+          `Tamamlanan seans sayısı: ${data.sessionCount}\n` +
+          `Çalışılan gün sayısı: ${data.daysStudied}\n` +
+          `Çözülen soru sayısı: ${data.questionCount} (${data.correctCount} doğru, ${data.wrongCount} yanlış)\n\n` +
+          `StudySphere'i kullanmaya devam edin!`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px;">
+            <p><strong>${data.periodLabel}</strong> dönemindeki çalışma özetiniz:</p>
+            <ul style="line-height: 1.8;">
+              <li>Toplam çalışma süresi: <strong>${durationText}</strong></li>
+              <li>Tamamlanan seans sayısı: <strong>${data.sessionCount}</strong></li>
+              <li>Çalışılan gün sayısı: <strong>${data.daysStudied}</strong></li>
+              <li>Çözülen soru sayısı: <strong>${data.questionCount}</strong> (${data.correctCount} doğru, ${data.wrongCount} yanlış)</li>
+            </ul>
+            <p style="color: #666;">Bu e-postaları "Profil &gt; E-posta Bildirimleri" bölümünden kapatabilirsiniz.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(`Çalışma özeti e-postası gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
     }
   }

@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from '../mail/mail.module';
+import { DevicesModule } from '../devices/devices.module';
 
 
 
@@ -17,6 +18,7 @@ import { MailModule } from '../mail/mail.module';
             PassportModule,
             ConfigModule.forRoot(),
             MailModule,
+            DevicesModule,
             JwtModule.registerAsync({
               imports: [ConfigModule],
               useFactory: async(configService : ConfigService) => ({

@@ -30,10 +30,6 @@ export class UsersController {
     return this.usersService.update(req.user.userId, updateUserDto);
   }
 
-  // "Arkadaşlarım" ekranındaki çevrimiçi/çevrimdışı durumu için heartbeat —
-  // bkz. UsersService.touchLastActiveAt / FriendsService.computePresence.
-  // Mobil taraf uygulama ön plandayken periyodik olarak bunu çağırıyor
-  // (bkz. hooks/useHeartbeat.ts).
   @UseGuards(JwtAuthGuard)
   @Patch('me/ping')
   async ping(@Req() req) {

@@ -1,5 +1,5 @@
 import { StyleSheet, TextInputProps, View, Text, TextInput, TouchableOpacity } from "react-native";
-import { Feather } from '@expo/vector-icons'; // Expo'nun yerleşik ikon kütüphanesi
+import { Feather } from '@expo/vector-icons';
 import { SPACING } from "../theme/theme";
 import { useTheme } from "../context/ThemeContext";
 import { useState } from "react";

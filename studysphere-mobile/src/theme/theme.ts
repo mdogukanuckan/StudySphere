@@ -16,26 +16,26 @@ export interface ThemeColors {
 }
 
 export const LIGHT_COLORS: ThemeColors = {
-  primary: '#2563EB',       // Royal Blue
-  background: '#F1F5F9',    // Ice White
-  surface: '#E2E8F0',       // Light Blue Gray
-  text: '#1E293B',          // Dark Navy
-  textSecondary: '#475569', // Slate-600
-  border: '#CBD5E1',        // Slate-300
+  primary: '#2563EB',
+  background: '#F1F5F9',
+  surface: '#E2E8F0',
+  text: '#1E293B',
+  textSecondary: '#475569',
+  border: '#CBD5E1',
   error: '#EF4444',
   success: '#22C55E',
   overlay: 'rgba(0, 0, 0, 0.5)',
 };
 
 export const DARK_COLORS: ThemeColors = {
-  primary: '#3B82F6',       // Electric Blue (eski colors.ts dark.accent)
-  background: '#0F172A',    // Midnight Navy (eski colors.ts dark.background)
-  surface: '#1E293B',       // Steel Blue (eski colors.ts dark.card)
-  text: '#F1F5F9',          // Ice White (eski colors.ts dark.text)
-  textSecondary: '#94A3B8', // Slate-400 — koyu zeminde okunabilirlik için light moddakinden daha açık
-  border: '#334155',        // Slate-700 — koyu yüzeyler için daha koyu kenarlık
-  error: '#F87171',         // Red-400 — koyu zeminde daha az göz yoran kırmızı
-  success: '#4ADE80',       // Green-400
+  primary: '#3B82F6',
+  background: '#0F172A',
+  surface: '#1E293B',
+  text: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  border: '#334155',
+  error: '#F87171',
+  success: '#4ADE80',
   overlay: 'rgba(0, 0, 0, 0.65)',
 };
 
@@ -60,10 +60,10 @@ export function createShadows(colors: ThemeColors) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.05,
       shadowRadius: 4,
-      elevation: 2, // Android desteği için mutlak zorunluluk
+      elevation: 2,
     },
     medium: {
-      shadowColor: colors.primary, // FAB butonu gibi marka rengini vurgulayan gölge
+      shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 6,
@@ -77,7 +77,6 @@ export type Shadows = ReturnType<typeof createShadows>;
 export function createGlobalStyles(colors: ThemeColors) {
   const shadows = createShadows(colors);
   return StyleSheet.create({
-    // Tam ekran konteyner yapısı
     screenContainer: {
       flex: 1,
       backgroundColor: colors.background,

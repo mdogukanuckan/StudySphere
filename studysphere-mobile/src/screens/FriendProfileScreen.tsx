@@ -1,14 +1,3 @@
-// src/screens/FriendProfileScreen.tsx
-//
-// "Arkadaş Profili" (8. tur istek, 24 Temmuz): bir arkadaşının özet
-// istatistiklerini (StatisticsScreen'deki "Performans Özeti" kartlarıyla
-// aynı dört alan) ve başarım listesini (AchievementsScreen ile aynı
-// görsel dil — CATEGORY_LABELS/formatProgressLabel oradan import ediliyor)
-// gösterir. FriendsScreen.tsx'teki "Arkadaşlarım" sekmesinde bir arkadaşa
-// dokununca açılan üst seviye bir route (bkz. AppNavigator.tsx — Profile/
-// Friends ile aynı desen). Backend, GERÇEKTEN arkadaş olunmadıkça veri
-// döndürmüyor (bkz. FriendsService.getFriendProfile) — bu ekran o kontrolün
-// sonucuna (403 dönerse) bir hata mesajıyla karşılık veriyor.
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,8 +31,6 @@ export default function FriendProfileScreen() {
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
-    // 'initialDisplayName': FriendsScreen'den geçiliyor — profil verisi daha
-    // gelmeden başlık boş görünmesin diye (kısa süreli bir yer tutucu).
     const { userId, initialDisplayName } = route.params ?? {};
 
     const { data: profile, isLoading, isError, error, refetch } = useFriendProfile(userId);

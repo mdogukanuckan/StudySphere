@@ -13,9 +13,6 @@ export const useVerifyEmail = () => {
     return useMutation({
         mutationFn: (code: string) => verifyEmail(code),
         onSuccess: () => {
-            // isEmailVerified degeri /users/me uzerinden gelir; dogrulama basarili
-            // olunca ProfileScreen ve oda olusturma/katilma akislarinin guncel
-            // durumu gormesi icin cache'i tazeliyoruz.
             queryClient.invalidateQueries({ queryKey: CURRENT_USER_QUERY_KEY });
         },
     });

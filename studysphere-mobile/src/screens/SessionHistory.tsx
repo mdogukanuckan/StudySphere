@@ -183,7 +183,7 @@ const createStyles = (colors: ThemeColors, shadows: Shadows) => StyleSheet.creat
   dateText: { fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
   topicText: { fontSize: 14, fontWeight: '600', color: colors.text },
   durationBadge: {
-    backgroundColor: colors.primary + '20', // Opak mavi arka plan
+    backgroundColor: colors.primary + '20',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,

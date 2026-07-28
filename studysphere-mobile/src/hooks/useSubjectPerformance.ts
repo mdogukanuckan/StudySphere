@@ -1,4 +1,3 @@
-// src/hooks/useSubjectPerformance.ts
 import { useQuery } from '@tanstack/react-query';
 import { statisticsService } from '../api/statisticService';
 

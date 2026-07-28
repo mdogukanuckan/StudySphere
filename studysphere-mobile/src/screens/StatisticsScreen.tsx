@@ -183,7 +183,7 @@ const createStyles = (colors: ThemeColors, shadows: Shadows) => StyleSheet.creat
     },
     card: {
         backgroundColor: colors.surface,
-        width: '48%', // İki kart yan yana tam otursun diye
+        width: '48%',
         padding: SPACING.lg,
         borderRadius: 12,
         marginBottom: SPACING.md,

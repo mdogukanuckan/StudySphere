@@ -9,8 +9,6 @@ describe('UsersController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
-        // UsersService gerçek repository'ye bağlı; DI'nin çözülebilmesi
-        // için boş bir mock veriyoruz.
         { provide: UsersService, useValue: {} },
       ],
     }).compile();

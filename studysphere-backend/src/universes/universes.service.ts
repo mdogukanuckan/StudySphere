@@ -21,8 +21,6 @@ export class UniversesService {
 
   async create(createUniverseDto: CreateUniverseDto, userId: string): Promise<Universe> {
 
-    // isArchived: false — arşivlenmiş (eskiden "silinmiş") bir evrenle aynı
-    // isim artık çakışma sayılmıyor; kullanıcı aynı ismi yeniden kullanabilsin.
     const existingUniverse = await this.universeRepository
       .createQueryBuilder('universe')
       .innerJoin('universe.userUniverses', 'uu')
@@ -52,9 +50,6 @@ export class UniversesService {
     return await this.universeRepository
       .createQueryBuilder('universe')
       .innerJoin('universe.userUniverses', 'uu', 'uu.userId = :userId', { userId })
-      // Arşivlenmiş evrenler normal listede görünmemeli; aynı şekilde bir
-      // evrenin altına gömülü (join edilen) dersler listesinden de arşivlenmiş
-      // dersler çıkarılıyor — bkz. remove().
       .where('universe.isArchived = false')
       .leftJoinAndSelect('universe.subjects', 'subjects', 'subjects.isArchived = false')
       .getMany();
@@ -86,9 +81,6 @@ export class UniversesService {
     return await this.universeRepository.save(universe);
   }
 
-  // Dönüş değeri: { archived: true } -> evren geçmiş/arşivlenmiş kayıtlar
-  // yüzünden kalıcı silinemedi, bunun yerine arşivlendi. { archived: false }
-  // -> gerçekten silindi.
   async remove(id: string, userId: string): Promise<{ archived: boolean }> {
     const universe = await this.findOne(id, userId);
     try {
@@ -100,12 +92,6 @@ export class UniversesService {
         throw error;
       }
 
-      // Kullanıcı görünürdeki tüm dersleri silmiş/arşivlemiş olsa bile, bu
-      // evren hâlâ silinemiyor olabilir — çünkü ARŞİVLENMİŞ bir ders (Subject
-      // -> Universe RESTRICT ile) ya da evrene doğrudan bağlı geçmiş çalışma
-      // seansı/odası hâlâ referans veriyor olabilir; bunlar kullanıcıya hiç
-      // görünmüyor. Bu yüzden ham FK hatasının hangi tablodan geldiğine değil,
-      // hâlâ CANLI (arşivlenmemiş) bir ders olup olmadığına bakıyoruz:
       const hasLiveSubject = (await this.subjectRepository.count({
         where: { universeId: id, isArchived: false },
       })) > 0;
@@ -116,10 +102,6 @@ export class UniversesService {
         );
       }
 
-      // Görünürde hiç ders kalmadı; engelleyen şey ya arşivlenmiş (görünmez)
-      // eski dersler ya da bu evrene doğrudan bağlı geçmiş çalışma seansları/
-      // odaları. İkisi de kullanıcının artık erişmediği geçmiş veri olduğundan,
-      // evreni kalıcı silmek yerine arşivliyoruz.
       universe.isArchived = true;
       await this.universeRepository.save(universe);
       return { archived: true };

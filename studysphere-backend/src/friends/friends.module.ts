@@ -14,8 +14,6 @@ import { UsersModule } from '../users/users.module';
     imports: [
       TypeOrmModule.forFeature([Friendship, User, StudySession, UserStatistic]),
       AchievementsModule,
-      // EmailVerifiedGuard (arkadaşlık isteği gönderme/kabul etme uçlarında)
-      // UsersService'e ihtiyaç duyuyor — bkz. friends.controller.ts.
       UsersModule,
     ],
     controllers: [FriendsController],

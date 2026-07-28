@@ -105,7 +105,7 @@ export default function SessionDetailScreen({ route }: Props) {
         </View>
       </View>
 
-      {/* Süre */}
+      {}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Süre</Text>
         <Text style={styles.durationValue}>{formatDuration(session.durationSeconds)}</Text>
@@ -121,7 +121,7 @@ export default function SessionDetailScreen({ route }: Props) {
         </View>
       </View>
 
-      {/* Hedef (seans başlatılırken girildiyse) */}
+      {}
       {!!session.goal && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Hedef</Text>

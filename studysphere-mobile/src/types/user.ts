@@ -7,6 +7,8 @@ export interface CurrentUser {
     experienceMode?: string;
     role?: string;
     isEmailVerified?: boolean;
+    weeklySummaryEmailEnabled?: boolean;
+    monthlySummaryEmailEnabled?: boolean;
 }
 
 
@@ -14,4 +16,6 @@ export interface UpdateProfileRequest {
     email?: string;
     firstName?: string;
     lastName?: string;
+    weeklySummaryEmailEnabled?: boolean;
+    monthlySummaryEmailEnabled?: boolean;
 }

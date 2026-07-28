@@ -14,10 +14,6 @@ export class Universe {
     @Column({ name: 'description', type: 'text', nullable: true })
     description !: string;
 
-    // Bir evrenin kalıcı silinmesi, hâlâ arşivlenmiş (görünmez) dersler ya da
-    // geçmiş çalışma seansları/odaları yüzünden FK kısıtlamasına takılırsa
-    // (bkz. UniversesService.remove), evreni veritabanından silmek yerine
-    // burada arşivli işaretliyoruz — Subject'teki aynı desen (subject.entity.ts).
     @Column({ name: 'is_archived', type: 'boolean', default: false })
     isArchived !: boolean;
 

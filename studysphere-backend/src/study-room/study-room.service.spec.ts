@@ -13,11 +13,6 @@ describe('StudyRoomService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StudyRoomService,
-        // StudyRoomService constructor'da üç repository (StudySession de
-        // artık dahil — bkz. getRoomParticipants'taki isSessionPaused), bir
-        // DataSource (transaction'lar için queryRunner) ve bir StudyRoomGateway
-        // (WebSocket yayınları için) bekliyor; hiçbiri sağlanmadan compile()
-        // hiç başarılı olmuyordu.
         { provide: getRepositoryToken(StudyRoom), useValue: {} },
         { provide: getRepositoryToken(RoomParticipant), useValue: {} },
         { provide: getRepositoryToken(StudySession), useValue: {} },

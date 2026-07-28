@@ -13,9 +13,6 @@ export class CreateSubjectDto {
     @IsNotEmpty({message : 'Evren seçilmeli'})
     universeId !: string;
 
-    // Sınav/hedef tarihi geri sayımı — opsiyonel. null gönderilirse (ör.
-    // düzenleme ekranında tarih temizlenirse) IsOptional bunu da geçerli sayıp
-    // atlar, böylece hedef tarih kaldırılabilir.
     @IsDateString({}, { message: 'Geçerli bir tarih giriniz (YYYY-AA-GG)' })
     @IsOptional()
     targetDate ?: string | null;

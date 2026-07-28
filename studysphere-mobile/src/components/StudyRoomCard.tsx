@@ -15,11 +15,11 @@ export const StudyRoomCard: React.FC<StudyRoomCardProps> = ({ room, onPress }) =
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <TouchableOpacity
-      style={globalStyles.card} // theme.ts'den gelen o meşhur gölgeli kart yapısı
+      style={globalStyles.card}
       onPress={() => onPress(room.id)}
       activeOpacity={0.7}
     >
-      {/* Üst Kısım: Başlık ve Rozet */}
+      {}
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={1}>
           {room.title}
@@ -44,7 +44,7 @@ export const StudyRoomCard: React.FC<StudyRoomCardProps> = ({ room, onPress }) =
         </Text>
       </View>
 
-      {/* Alt Kısım: Katılımcılar ve Sahip */}
+      {}
       <View style={styles.footer}>
         <View style={styles.participants}>
           <Users size={16} color={colors.text} style={styles.icon} />
@@ -60,7 +60,6 @@ export const StudyRoomCard: React.FC<StudyRoomCardProps> = ({ room, onPress }) =
   );
 };
 
-// Senin theme.ts dosyanla tam uyumlu StyleSheet yapısı
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -81,10 +80,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 12,
   },
   badgeActive: {
-    backgroundColor: `${colors.primary}1A`, // Primary rengin %10 opak hali
+    backgroundColor: `${colors.primary}1A`,
   },
   badgeClosed: {
-    backgroundColor: `${colors.error}1A`, // Hata renginin %10 opak hali
+    backgroundColor: `${colors.error}1A`,
   },
   badgeText: {
     color: colors.primary,

@@ -36,12 +36,8 @@ export class SubjectsService {
   async create(createSubjectDto: CreateSubjectDto, userId: string): Promise<Subject> {
     const { name, description, universeId, targetDate, targetLabel } = createSubjectDto;
 
-    // 1. Evrenin var olup olmadığını ve kullanıcıya ait olup olmadığını kontrol et
     const universe = await this.verifyUniverseOwnership(universeId, userId);
 
-    // 2. Aynı evrende aynı isimde ders var mı kontrolü
-    // isArchived: false — arşivlenmiş (eskiden "silinmiş") bir dersle aynı
-    // isim artık çakışma sayılmıyor; kullanıcı aynı ismi yeniden kullanabilsin.
     const existingSubject = await this.subjectRepository.findOne({
       where: { name, universe: { id: universeId }, isArchived: false },
     });
@@ -65,7 +61,6 @@ export class SubjectsService {
     if (universeId) {
       await this.verifyUniverseOwnership(universeId, userId);
       return await this.subjectRepository.find({
-        // Arşivlenmiş dersler normal listede görünmemeli — bkz. remove().
         where: { universe: { id: universeId }, isArchived: false },
       });
     }
@@ -92,8 +87,6 @@ export class SubjectsService {
     return await this.subjectRepository.save(subject);
   }
 
-  // Dönüş değeri: { archived: true } -> ders geçmiş kayıtlar yüzünden kalıcı
-  // silinemedi, bunun yerine arşivlendi. { archived: false } -> gerçekten silindi.
   async remove(id: string, userId: string): Promise<{ archived: boolean }> {
     const subject = await this.findOne(id, userId);
     try {
@@ -105,25 +98,14 @@ export class SubjectsService {
         throw error;
       }
 
-      // Postgres, hangi tablonun engellediğini 'table' alanında bildiriyor.
-      // Bunu iki farklı senaryoyu ayırt etmek için kullanıyoruz:
       const blockingTable = error?.table ?? error?.driverError?.table;
 
       if (blockingTable === 'topics') {
-        // Ders hâlâ CANLI konular içeriyor (topics -> subject artık RESTRICT,
-        // bkz. topic.entity.ts). Bu durumda Universe -> Subject ile aynı
-        // mantığı istiyoruz: sessizce arşivlemek yerine kullanıcıyı açıkça
-        // durdurup önce konuları silmesini/taşımasını istiyoruz. Aksi halde
-        // hâlâ erişilmesi gereken konular, görünmez (arşivlenmiş) bir dersin
-        // altında yetim kalırdı.
         throw new ConflictException(
           'Bu dersi silebilmek için önce içindeki konuları silmeli ya da başka bir derse taşımalısın.',
         );
       }
 
-      // Konu kalmamış ama derse bağlı geçmiş çalışma seansları/odaları
-      // (study_sessions/study_rooms) varsa, o geçmiş veriyi/istatistiği
-      // kaybetmemek için dersi kalıcı silmek yerine arşivliyoruz.
       subject.isArchived = true;
       await this.subjectRepository.save(subject);
       return { archived: true };

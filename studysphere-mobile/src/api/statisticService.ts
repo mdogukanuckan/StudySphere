@@ -19,8 +19,6 @@ export const statisticsService = {
     return data;
 },
 
-    // Solo (doğrudan konu seçilerek) ve sosyal (oda üzerinden) seanslardaki
-    // toplam süre ve oturum sayısı kırılımı.
     getModeBreakdown: async (): Promise<ModeBreakdown> => {
         const response = await apiClient.get<ModeBreakdown>('/study-sessions/performance/mode');
         return response.data;

@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     userInfo: {
-        alignItems: 'flex-end', // Yazıları sağa yasla ki ikona yakın dursun
+        alignItems: 'flex-end',
         marginRight: 8,
     },
     fullName: {
@@ -172,7 +172,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         width: '100%',
         justifyContent: 'center',
-        // gap unsupported
     },
     logoutText: { color: 'white', fontWeight: 'bold', marginLeft: 8 }
 });

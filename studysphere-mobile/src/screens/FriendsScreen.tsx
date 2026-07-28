@@ -101,9 +101,6 @@ export default function FriendsScreen() {
         ]);
     };
 
-    // Doğrulanmamış hesaplar arkadaşlık isteği gönderemez/kabul edemez
-    // (EmailVerifiedGuard) — diğer guard'lı uçlarla (oda kurma/katılma)
-    // aynı 403 + "Doğrula" yönlendirme deseni.
     const handleVerificationRequiredError = (error: any, title: string, fallback: string) => {
         const message = getErrorMessage(error, fallback);
         if (error?.response?.status === 403) {

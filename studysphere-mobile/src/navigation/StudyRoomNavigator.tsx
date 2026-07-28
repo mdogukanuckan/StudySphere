@@ -34,7 +34,7 @@ export const StudyRoomNavigator = () => {
         headerShadowVisible: false,
       }}>
       
-      {/* Mevcut Liste Ekranın */}
+      {}
       <Stack.Screen
         name="RoomList"
         component={RoomListScreen}

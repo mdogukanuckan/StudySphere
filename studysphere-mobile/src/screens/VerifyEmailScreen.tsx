@@ -14,10 +14,6 @@ import { useCurrentUser } from '../hooks/useUser';
 import { useSendVerificationCode, useVerifyEmail } from '../hooks/useEmailVerification';
 import { getErrorMessage } from '../utils/errorMessage';
 
-// Kayit sirasinda backend otomatik olarak bir dogrulama kodu gonderir (bkz.
-// AuthService.register). Bu ekran hem o ilk kodu girmek hem de gerektiginde
-// yeni kod istemek icin kullanilir. Profil ekranindan ve oda olusturma/katilma
-// sirasinda karsilasilan 403 hatasindan buraya yonlendirilebilir.
 export default function VerifyEmailScreen({ navigation }: any) {
     const { colors } = useTheme();
     const { data: currentUser } = useCurrentUser();

@@ -102,7 +102,6 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
     Share.share({
       message: `StudySphere'de "${room.title}" çalışma odasına katıl!\nDavet kodu: ${room.inviteCode}`,
     }).catch(() => {
-      // Kullanıcı paylaşım sayfasını iptal ettiyse sessizce geç.
     });
   };
 
@@ -337,19 +336,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 4,
   },
   sectionButton: {
-    // Alt kısımdaki "Katılımcıları Gör" / "Kronometreyi Başlat" / "Odadan
-    // Ayrıl" butonları birbirine daha yakın dursun diye 20'den düşürüldü.
-    // CustomButton'ın kendi marginVertical'ı (SPACING.sm = 8) üstüne
-    // bindiği için gerçek boşluk burada yazandan biraz daha fazla olur.
     marginBottom: 8,
   },
   inviteBox: {
-    // NOT: Bu kutu önceden #EDE9FE gibi sabit (hep açık tonlu) hex renkler
-    // kullanıyordu — infoBox/statusBox/sessionNotice'taki gibi eski bir
-    // desendi ama gece modunda hiç karartılmıyordu, bu yüzden "Kodu Paylaş"
-    // (arka planı şeffaf olan outline buton) altında hep açık/beyazımsı bir
-    // kutu görünüyordu. Tema renklerine (colors.surface/colors.primary)
-    // çevrilerek gece modunda da doğru koyu zeminde gösteriliyor.
     backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 16,

@@ -17,11 +17,6 @@ import { useForgotPassword, useResetPassword } from '../hooks/usePasswordReset';
 import { getErrorMessage } from '../utils/errorMessage';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 
-// Tek ekranda iki adim: once e-posta girilip kod istenir, kod gonderildikten
-// sonra ayni ekranda kod + yeni sifre alanlari belirir. Guvenlik icin backend
-// e-posta kayitli olsun olmasin hep ayni genel mesaji dondurur (bkz.
-// AuthService.forgotPassword) — yani bu ekran hesabin var olup olmadigini
-// asla dogrudan soylemez.
 export const ForgotPasswordScreen = () => {
     const { colors } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();

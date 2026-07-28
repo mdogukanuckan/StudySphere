@@ -1,4 +1,3 @@
-// src/hooks/useStudySession.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { studySessionService, EndSessionPayload } from '../api/studySessionService';
 import { StartSessionRequest, SessionType } from '../types/studySession';

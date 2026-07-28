@@ -3,6 +3,7 @@ import { LoginRequest, RegisterRequest } from "../types/auth";
 import { loginUser, registerUser, changePassword as changePasswordRequest, ChangePasswordRequest } from "../api/authService";
 import { useAuthContext } from "../context/AuthContext";
 import { storeTokens } from "../api/client";
+import { getOrCreateDeviceId, getReadableDeviceName } from "../utils/deviceId";
 
 export const useAuth = () =>{
     const [loading, setloading] = useState(false);
@@ -13,7 +14,9 @@ export const useAuth = () =>{
         setloading(true);
         setError(null);
         try{
-            const data = await loginUser(credential);
+            const deviceId = await getOrCreateDeviceId();
+            const deviceName = getReadableDeviceName();
+            const data = await loginUser({ ...credential, deviceId, deviceName });
             if (data.access_token) {
                 await storeTokens(data.access_token, data.refresh_token);
                 setToken(data.access_token);
@@ -24,7 +27,7 @@ export const useAuth = () =>{
             const message = error instanceof Error ? error.message : 'Giriş başarısız, lütfen bilgileri kontrol ediniz.';
             setError(message);
             console.log(error);
-            
+
             setToken(null);
         }finally{
             setloading(false);

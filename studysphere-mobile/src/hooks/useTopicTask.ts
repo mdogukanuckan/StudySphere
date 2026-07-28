@@ -10,7 +10,6 @@ export const useTopicTasks = (topicId: string) => {
     });
 };
 
-// "Görevlerim" ekranının "Notlar" sekmesi için.
 export const useMyTopicTaskOverview = () => {
     return useQuery({
         queryKey: ['topicTasks', 'my-overview'],

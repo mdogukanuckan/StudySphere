@@ -10,8 +10,6 @@ describe('RefreshTokensService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RefreshTokensService,
-        // @InjectRepository(RefreshToken) gerçek bir DB bağlantısı gerektiriyordu;
-        // testte sadece DI'nin çözülebilmesi için boş bir repository mock'u yeterli.
         { provide: getRepositoryToken(RefreshToken), useValue: {} },
       ],
     }).compile();

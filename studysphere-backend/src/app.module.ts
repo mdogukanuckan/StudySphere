@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './users/users.module';
 import { UniversesModule } from './universes/universes.module';
 import { SubjectsModule } from './subjects/subjects.module';
@@ -18,6 +19,7 @@ import { TopicTasksModule } from './topic-tasks/topic-tasks.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { FriendsModule } from './friends/friends.module';
 import { RoomInvitesModule } from './room-invites/room-invites.module';
+import { StudySummaryModule } from './study-summary/study-summary.module';
 
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { RoomInvitesModule } from './room-invites/room-invites.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports : [ConfigModule],
       inject : [ConfigService],
@@ -40,7 +43,7 @@ import { RoomInvitesModule } from './room-invites/room-invites.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: true 
+        synchronize: true
       })
     }),
     UsersModule,
@@ -55,7 +58,8 @@ import { RoomInvitesModule } from './room-invites/room-invites.module';
     TopicTasksModule,
     AchievementsModule,
     FriendsModule,
-    RoomInvitesModule
+    RoomInvitesModule,
+    StudySummaryModule
   ],
   controllers: [AppController],
   providers: [

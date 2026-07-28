@@ -1,9 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// Backend adresi .env dosyasindaki EXPO_PUBLIC_API_URL degiskeninden okunur.
-// Gelistirme icin studysphere-mobile/.env dosyasina kendi bilgisayarinizin
-// yerel ag IP adresini yazin (ornek: EXPO_PUBLIC_API_URL=http://192.168.1.23:3000).
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 const ACCESS_TOKEN_KEY = 'access_token';

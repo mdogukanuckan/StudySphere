@@ -1,4 +1,3 @@
-// src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -49,7 +48,6 @@ export const LoginScreen = () => {
             keyboardType='email-address'
             autoCapitalize='none'
             onChangeText={setEmail}
-            //error = {emailError}
             />
           <CustomInput
             label='Şifre'
@@ -83,7 +81,6 @@ export const LoginScreen = () => {
   );
 };
 
-// Merkezi stil yönetimi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -115,7 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 16, // Eğer gap desteklemezse diye fallback
+    marginBottom: 16,
   },
   errorText: {
     textAlign: 'center',

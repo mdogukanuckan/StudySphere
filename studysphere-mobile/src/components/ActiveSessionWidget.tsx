@@ -1,4 +1,3 @@
-// src/components/ActiveSessionWidget.tsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StudySession, UnlockedAchievementSummary } from '../types/studySession';
@@ -33,7 +32,6 @@ export const ActiveSessionWidget: React.FC<Props> = ({ session, topicName = "Akt
     const pausedSecondsRef = useRef(0);
     const pauseStartRef = useRef<number | null>(null);
 
-    // Duraklatma durumu değiştiğinde referansları güncelle
     useEffect(() => {
         if (isPaused) {
             if (pauseStartRef.current === null) {
@@ -69,7 +67,7 @@ export const ActiveSessionWidget: React.FC<Props> = ({ session, topicName = "Akt
                 if (remaining <= 0) {
                     if (intervalId) clearInterval(intervalId);
                     setDisplaySeconds(0);
-                    setSummaryVisible(true); // Süre bitince de kullanıcıya soru özetini soruyoruz
+                    setSummaryVisible(true);
                 } else {
                     setDisplaySeconds(remaining);
                 }
@@ -111,8 +109,6 @@ export const ActiveSessionWidget: React.FC<Props> = ({ session, topicName = "Akt
             onSuccess: (data) => {
                 setSummaryVisible(false);
                 if (data?.newAchievements && data.newAchievements.length > 0) {
-                    // Yeni başarım(lar) kazanıldıysa, jenerik "Tebrikler"
-                    // Alert'i yerine kutlama modalını açıyoruz.
                     setUnlockedAchievements(data.newAchievements);
                     setAchievementModalVisible(true);
                 } else {

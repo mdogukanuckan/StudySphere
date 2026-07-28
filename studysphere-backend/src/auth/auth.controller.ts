@@ -45,9 +45,6 @@ export class AuthController {
         return this.authService.changePassword(userId, changePasswordDto);
     }
 
-    // Dogrulanmamis hesaplar da giris yapabildigi icin bu uc noktalar
-    // authenticated ama EmailVerifiedGuard KULLANMIYOR — aksi halde dogrulanmamis
-    // kullanici kendi kodunu isteyip dogrulayamazdi.
     @Post('send-verification-code')
     @UseGuards(AuthGuard('jwt'))
     @HttpCode(HttpStatus.OK)
@@ -62,8 +59,6 @@ export class AuthController {
         return this.authService.verifyEmail(req.user.userId, verifyEmailDto.code);
     }
 
-    // Kullanici henuz giris yapamadigi icin (sifresini unuttu) bu iki uc nokta
-    // authsuz/public — guard YOK.
     @Post('forgot-password')
     @HttpCode(HttpStatus.OK)
     async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto){

@@ -9,8 +9,6 @@ describe('RefreshTokensController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RefreshTokensController],
       providers: [
-        // RefreshTokensService gerçek repository'ye bağlı; DI'nin çözülebilmesi
-        // için boş bir mock veriyoruz.
         { provide: RefreshTokensService, useValue: {} },
       ],
     }).compile();

@@ -26,7 +26,6 @@ export class RefreshToken {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  // --- İLİŞKİ (RELATION) ---
   @ManyToOne(() => User, (user) => user.refreshTokens, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: User;

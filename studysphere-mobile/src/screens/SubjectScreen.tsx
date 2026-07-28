@@ -27,7 +27,6 @@ export default function SubjectScreen() {
 
     const { universeId, universeName } = route.params;
 
-    // ---- Data ----
     const { data: allSubjects, isLoading, isError, refetch, isRefetching } = useSubjects(universeId);
     const { mutate: createSubject, isPending: isCreating } = useCreateSubject();
     const { mutate: updateSubject, isPending: isUpdating } = useUpdateSubject();

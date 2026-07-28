@@ -57,13 +57,11 @@ export class TopicsService {
 
   async findAll(userId: string, subjectId?: string) {
     if (subjectId) {
-        // Sadece ilgili subject'e ait konuları getir (sahiplik doğrulaması ile)
         await this.verifySubjectOwnership(subjectId, userId);
         return await this.topicRepository.find({
             where: { subjectId: subjectId }
         });
     }
-    // subjectId gönderilmediyse sadece kullanıcının kendi konularını döndür
     return await this.topicRepository
       .createQueryBuilder('topic')
       .innerJoin('subjects', 'subject', 'subject.id = topic.subject_id')
@@ -96,12 +94,6 @@ export class TopicsService {
     try {
       await this.topicRepository.remove(topic);
     } catch (error: any) {
-      // Bu konuya bağlı bir çalışma odası (study_rooms.topic_id) ya da çalışma
-      // seansı varken silme denenirse Postgres ham bir foreign key ihlali
-      // (23503) fırlatıyor — Universe/Subject'teki remove() ile aynı kök neden
-      // (bkz. universes.service.ts / subjects.service.ts): bu ham hata
-      // @Catch(HttpException) filtresi tarafından yakalanamayıp mobile
-      // anlamsız/jenerik bir hata olarak gidiyordu.
       if (error?.code === '23503' || error?.driverError?.code === '23503') {
         throw new ConflictException(
           'Bu konuyu silebilmek için önce ona ait çalışma seanslarını ve çalışma odalarını silmelisin.',

@@ -15,7 +15,6 @@ const NotificationSettingsContext = createContext<NotificationSettingsContextTyp
 );
 
 export const NotificationSettingsProvider = ({ children }: { children: ReactNode }) => {
-  // Varsayılan: açık — istemeyen kullanıcı kendi kapatır.
   const [notificationsEnabled, setEnabledState] = useState(true);
   const [isRestoring, setIsRestoring] = useState(true);
 
