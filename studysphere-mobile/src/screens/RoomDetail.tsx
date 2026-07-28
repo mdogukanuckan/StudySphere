@@ -337,22 +337,34 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 4,
   },
   sectionButton: {
-    marginBottom: 20,
+    // Alt kısımdaki "Katılımcıları Gör" / "Kronometreyi Başlat" / "Odadan
+    // Ayrıl" butonları birbirine daha yakın dursun diye 20'den düşürüldü.
+    // CustomButton'ın kendi marginVertical'ı (SPACING.sm = 8) üstüne
+    // bindiği için gerçek boşluk burada yazandan biraz daha fazla olur.
+    marginBottom: 8,
   },
   inviteBox: {
-    backgroundColor: '#EDE9FE',
+    // NOT: Bu kutu önceden #EDE9FE gibi sabit (hep açık tonlu) hex renkler
+    // kullanıyordu — infoBox/statusBox/sessionNotice'taki gibi eski bir
+    // desendi ama gece modunda hiç karartılmıyordu, bu yüzden "Kodu Paylaş"
+    // (arka planı şeffaf olan outline buton) altında hep açık/beyazımsı bir
+    // kutu görünüyordu. Tema renklerine (colors.surface/colors.primary)
+    // çevrilerek gece modunda da doğru koyu zeminde gösteriliyor.
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: `${colors.primary}40`,
   },
   inviteTitle: {
-    color: '#6D28D9',
+    color: colors.primary,
     fontWeight: '600',
     marginBottom: 8,
     fontSize: 16,
   },
   inviteCode: {
-    color: '#4C1D95',
+    color: colors.primary,
     fontWeight: 'bold',
     fontSize: 28,
     letterSpacing: 6,
@@ -360,7 +372,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 8,
   },
   inviteHint: {
-    color: '#5B21B6',
+    color: colors.textSecondary,
     fontSize: 13,
     marginBottom: 12,
     lineHeight: 18,

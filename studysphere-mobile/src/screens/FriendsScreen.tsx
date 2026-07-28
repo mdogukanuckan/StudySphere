@@ -101,10 +101,25 @@ export default function FriendsScreen() {
         ]);
     };
 
+    // Doğrulanmamış hesaplar arkadaşlık isteği gönderemez/kabul edemez
+    // (EmailVerifiedGuard) — diğer guard'lı uçlarla (oda kurma/katılma)
+    // aynı 403 + "Doğrula" yönlendirme deseni.
+    const handleVerificationRequiredError = (error: any, title: string, fallback: string) => {
+        const message = getErrorMessage(error, fallback);
+        if (error?.response?.status === 403) {
+            Alert.alert(title, message, [
+                { text: 'Vazgeç', style: 'cancel' },
+                { text: 'Doğrula', onPress: () => navigation.navigate('VerifyEmail') },
+            ]);
+            return;
+        }
+        Alert.alert(title, message);
+    };
+
     const handleSendRequest = (user: UserSearchResult) => {
         sendRequestMutation.mutate(user.id, {
             onError: (error: any) => {
-                Alert.alert('İşlem Başarısız', getErrorMessage(error, 'İstek gönderilirken bir hata oluştu.'));
+                handleVerificationRequiredError(error, 'İşlem Başarısız', 'İstek gönderilirken bir hata oluştu.');
             },
         });
     };
@@ -118,7 +133,7 @@ export default function FriendsScreen() {
                 }
             },
             onError: (error: any) => {
-                Alert.alert('İşlem Başarısız', getErrorMessage(error, 'İstek kabul edilirken bir hata oluştu.'));
+                handleVerificationRequiredError(error, 'İşlem Başarısız', 'İstek kabul edilirken bir hata oluştu.');
             },
         });
     };

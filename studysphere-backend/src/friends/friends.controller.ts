@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req } fro
 import { FriendsService } from './friends.service';
 import { SendFriendRequestDto } from './dto/send-friend-request.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth-guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
@@ -30,12 +31,19 @@ export class FriendsController {
         return this.friendsService.getFriendProfile(req.user.userId, userId);
     }
 
+    // Doğrulanmamış e-posta ile arkadaşlık isteği gönderilemez/kabul
+    // edilemez — çalışma odası kurma/katılma ile aynı kural
+    // (bkz. study-room.controller.ts'teki EmailVerifiedGuard kullanımı).
+    // Reddetme/arkadaşlıktan çıkarma yeni bir sosyal bağ KURMADIĞI için
+    // guard'lı değil (leaveRoom/closeRoom da aynı sebeple guard'sız).
     @Post('requests')
+    @UseGuards(EmailVerifiedGuard)
     sendRequest(@Req() req, @Body() dto: SendFriendRequestDto) {
         return this.friendsService.sendRequest(req.user.userId, dto.addresseeId);
     }
 
     @Post('requests/:id/accept')
+    @UseGuards(EmailVerifiedGuard)
     acceptRequest(@Req() req, @Param('id') id: string) {
         return this.friendsService.acceptRequest(req.user.userId, id);
     }

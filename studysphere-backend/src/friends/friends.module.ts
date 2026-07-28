@@ -7,10 +7,17 @@ import { UserStatistic } from '../user-statistics/entities/user-statistic.entity
 import { FriendsService } from './friends.service';
 import { FriendsController } from './friends.controller';
 import { AchievementsModule } from '../achievements/achievements.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  
-    imports: [TypeOrmModule.forFeature([Friendship, User, StudySession, UserStatistic]), AchievementsModule],
+
+    imports: [
+      TypeOrmModule.forFeature([Friendship, User, StudySession, UserStatistic]),
+      AchievementsModule,
+      // EmailVerifiedGuard (arkadaşlık isteği gönderme/kabul etme uçlarında)
+      // UsersService'e ihtiyaç duyuyor — bkz. friends.controller.ts.
+      UsersModule,
+    ],
     controllers: [FriendsController],
     providers: [FriendsService],
 })
