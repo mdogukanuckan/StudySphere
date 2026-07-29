@@ -11,6 +11,10 @@ import { UpdateStudyRoomDto } from "./dto/update-study-room.dto";
 import { ParticipantStatus } from "./enums/participant-status.enum";
 import { StudyRoomGateway } from "./study-room.gateway";
 import { SessionStatus, StudySession } from "../study-sessions/entities/study-session.entity";
+import { UsersService } from "../users/users.service";
+
+const MAX_JOIN_BY_CODE_ATTEMPTS = 5;
+const JOIN_BY_CODE_LOCK_MS = 10 * 60 * 1000;
 
 @Injectable()
 export class StudyRoomService {
@@ -24,6 +28,7 @@ export class StudyRoomService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly gateway: StudyRoomGateway,
+    private readonly usersService: UsersService,
   ) { }
 
   async createRoom(userId: string, createDto: CreateStudyRoomDto): Promise<StudyRoom> {
@@ -192,8 +197,24 @@ export class StudyRoomService {
   }
 
   async joinRoomByCode(userId: string, code: string): Promise<RoomParticipant> {
+    const lockState = await this.usersService.getJoinByCodeLockState(userId);
+    if (lockState.joinByCodeLockedUntil && new Date(lockState.joinByCodeLockedUntil).getTime() > Date.now()) {
+      const waitMinutes = Math.ceil((new Date(lockState.joinByCodeLockedUntil).getTime() - Date.now()) / 60000);
+      throw new BadRequestException(
+        `Çok fazla hatalı davet kodu denemesi yaptınız. Lütfen ${waitMinutes} dakika sonra tekrar deneyin.`,
+      );
+    }
+
     const room = await this.roomRepository.findOne({ where: { inviteCode: code, isPrivate: true } });
-    if (!room) throw new NotFoundException('Geçersiz davet kodu.');
+    if (!room) {
+      const attempts = await this.usersService.incrementJoinByCodeFailedAttempts(userId);
+      if (attempts >= MAX_JOIN_BY_CODE_ATTEMPTS) {
+        await this.usersService.lockJoinByCode(userId, new Date(Date.now() + JOIN_BY_CODE_LOCK_MS));
+      }
+      throw new NotFoundException('Geçersiz davet kodu.');
+    }
+
+    await this.usersService.resetJoinByCodeFailedAttempts(userId);
     return this.joinRoom(userId, room.id);
   }
 

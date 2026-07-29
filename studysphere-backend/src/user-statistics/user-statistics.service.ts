@@ -136,17 +136,7 @@ export class UserStatisticsService {
     }
   }
 
-async getStatisticsBySubject(userId: string) {
-  return await this.userStatisticsRepository.createQueryBuilder('stats')
-    .leftJoin('stats.user', 'user')
-    .select('session.subjectId', 'subjectId')
-    .addSelect('SUM(session.durationSeconds)', 'totalDuration')
-    .leftJoin('StudySession', 'session', 'session.userId = user.id')
-    .groupBy('session.subjectId')
-    .getRawMany();
-}
-
-async getDailyStudyStats(userId: string) {
+  async getDailyStudyStats(userId: string) {
     return await this.studySessionsService.getDailyStats(userId);
   }
 }

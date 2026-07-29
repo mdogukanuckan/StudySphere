@@ -168,6 +168,40 @@ export class UsersService {
     });
   }
 
+  async getJoinByCodeLockState(id: string): Promise<Pick<User, 'id' | 'joinByCodeFailedAttempts' | 'joinByCodeLockedUntil'>> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: { id: true, joinByCodeFailedAttempts: true, joinByCodeLockedUntil: true },
+    });
+    if (!user) {
+      throw new NotFoundException(`#${id} ID'li kullanıcı bulunamadı`);
+    }
+    return user;
+  }
+
+  async incrementJoinByCodeFailedAttempts(id: string): Promise<number> {
+    await this.userRepository.increment({ id }, 'joinByCodeFailedAttempts', 1);
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: { id: true, joinByCodeFailedAttempts: true },
+    });
+    return user?.joinByCodeFailedAttempts ?? 0;
+  }
+
+  async lockJoinByCode(id: string, until: Date): Promise<void> {
+    await this.userRepository.update(id, {
+      joinByCodeLockedUntil: until,
+      joinByCodeFailedAttempts: 0,
+    });
+  }
+
+  async resetJoinByCodeFailedAttempts(id: string): Promise<void> {
+    await this.userRepository.update(id, {
+      joinByCodeFailedAttempts: 0,
+      joinByCodeLockedUntil: null,
+    });
+  }
+
   async remove(id: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {

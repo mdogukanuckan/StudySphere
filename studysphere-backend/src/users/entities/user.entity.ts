@@ -75,6 +75,12 @@ export class User {
     @Column({ name: 'monthly_summary_email_enabled', type: 'boolean', default: false })
     monthlySummaryEmailEnabled !: boolean;
 
+    @Column({ name: 'join_by_code_failed_attempts', type: 'int', default: 0 })
+    joinByCodeFailedAttempts !: number;
+
+    @Column({ name: 'join_by_code_locked_until', type: 'timestamp', nullable: true })
+    joinByCodeLockedUntil !: Date | null;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt !: Date;
 

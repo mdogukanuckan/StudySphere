@@ -1,6 +1,6 @@
 
 export interface UserStatistic{
-    
+
     id : string;
     totalStudyTime : number;
     totalSessionsCompleted : number;
@@ -16,9 +16,25 @@ export interface DailyStat {
     totalDuration : string | number;
 }
 
-  export interface SubjectPerformance {
-    subjectId: string;
+export interface TopicBreakdown {
+    topicId: string | null;
+    topicName: string;
     totalDuration: number;
+    totalQuestions: number;
+    totalCorrect: number;
+    totalWrong: number;
+    sessionCount: number;
+}
+
+export interface SubjectBreakdown {
+    subjectId: string;
+    subjectName: string;
+    totalDuration: number;
+    totalQuestions: number;
+    totalCorrect: number;
+    totalWrong: number;
+    sessionCount: number;
+    topics: TopicBreakdown[];
 }
 
 

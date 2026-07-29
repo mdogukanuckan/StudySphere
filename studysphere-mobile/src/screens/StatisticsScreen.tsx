@@ -1,8 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Dimensions, StyleSheet, Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { BarChart } from 'react-native-chart-kit';
 import { useDailyStats, useModeBreakdown, useMyStatistics } from "../hooks/useStatistic";
+import { useSubjectPerformance } from "../hooks/useSubjectPerformance";
 import { useAchievements } from "../hooks/useAchievements";
+import { SubjectBreakdown } from "../types/statistics";
 import { SPACING, ThemeColors, Shadows } from "../theme/theme";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +19,8 @@ const hexToRgba = (hex: string, opacity: number) => {
     const b = bigint & 255;
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
+
+const formatMinutes = (durationSeconds: number) => `${Math.floor(durationSeconds / 60)} dk`;
 
 const StatCard = ({ title, value, onPress }: { title: string, value: string | number, onPress?: () => void }) => {
     const { colors, shadows } = useTheme();
@@ -34,18 +38,69 @@ const StatCard = ({ title, value, onPress }: { title: string, value: string | nu
     );
 };
 
+const SubjectAccordion = ({ subject, expanded, onToggle }: { subject: SubjectBreakdown, expanded: boolean, onToggle: () => void }) => {
+    const { colors, shadows } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
+    const accuracy = subject.totalQuestions > 0 ? Math.round((subject.totalCorrect / subject.totalQuestions) * 100) : null;
+
+    return (
+        <View style={styles.subjectCard}>
+            <TouchableOpacity style={styles.subjectHeader} onPress={onToggle} activeOpacity={0.7}>
+                <View style={styles.subjectHeaderText}>
+                    <Text style={styles.subjectName}>{subject.subjectName}</Text>
+                    <Text style={styles.subjectMeta}>
+                        {formatMinutes(subject.totalDuration)} · {subject.totalQuestions} soru
+                        {accuracy !== null ? ` · %${accuracy} doğruluk` : ''}
+                    </Text>
+                </View>
+                <Text style={styles.expandIcon}>{expanded ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {expanded && (
+                <View style={styles.topicsContainer}>
+                    {subject.topics.map((topic) => {
+                        const topicAccuracy = topic.totalQuestions > 0 ? Math.round((topic.totalCorrect / topic.totalQuestions) * 100) : null;
+                        return (
+                            <View key={topic.topicId ?? 'genel'} style={styles.topicRow}>
+                                <Text style={styles.topicName}>{topic.topicName}</Text>
+                                <Text style={styles.topicMeta}>
+                                    {formatMinutes(topic.totalDuration)} · {topic.totalQuestions} soru · {topic.totalCorrect} doğru / {topic.totalWrong} yanlış
+                                    {topicAccuracy !== null ? ` (%${topicAccuracy})` : ''}
+                                </Text>
+                            </View>
+                        );
+                    })}
+                </View>
+            )}
+        </View>
+    );
+};
+
 export default function StatisticsScreen() {
     const navigation = useNavigation<any>();
     const { colors, shadows } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
+    const [expandedSubjectIds, setExpandedSubjectIds] = useState<Set<string>>(new Set());
 
     const { data: overallStats, isLoading: isLoadingOverAll } = useMyStatistics();
     const { data: dailyStats, isLoading: isLoadingDaily } = useDailyStats();
     const { data: modeBreakdown, isLoading: isLoadingMode } = useModeBreakdown();
+    const { data: subjectBreakdown, isLoading: isLoadingSubjects } = useSubjectPerformance();
     const { data: achievements } = useAchievements();
     const unlockedAchievementCount = achievements?.filter((a) => a.unlocked).length ?? 0;
 
-    if (isLoadingOverAll || isLoadingDaily || isLoadingMode) {
+    const toggleSubject = (subjectId: string) => {
+        setExpandedSubjectIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(subjectId)) {
+                next.delete(subjectId);
+            } else {
+                next.add(subjectId);
+            }
+            return next;
+        });
+    };
+
+    if (isLoadingOverAll || isLoadingDaily || isLoadingMode || isLoadingSubjects) {
         return (
             <View style={styles.center}>
                 <ActivityIndicator size='large' color={colors.primary} />
@@ -139,6 +194,22 @@ export default function StatisticsScreen() {
                     style={styles.chart}
                 />
             </View>
+
+            <Text style={styles.sectionTitle}>Ders ve Konu Bazlı İstatistikler</Text>
+            {subjectBreakdown && subjectBreakdown.length > 0 ? (
+                subjectBreakdown.map((subject) => (
+                    <SubjectAccordion
+                        key={subject.subjectId}
+                        subject={subject}
+                        expanded={expandedSubjectIds.has(subject.subjectId)}
+                        onToggle={() => toggleSubject(subject.subjectId)}
+                    />
+                ))
+            ) : (
+                <View style={styles.emptyStateContainer}>
+                    <Text style={styles.emptyStateText}>Henüz tamamlanmış bir çalışma seansın yok.</Text>
+                </View>
+            )}
         </ScrollView>
     );
 }
@@ -188,7 +259,7 @@ const createStyles = (colors: ThemeColors, shadows: Shadows) => StyleSheet.creat
         borderRadius: 12,
         marginBottom: SPACING.md,
         alignItems: 'center',
-        ...shadows.light, 
+        ...shadows.light,
     },
     cardTitle: {
         fontSize: 13,
@@ -260,5 +331,67 @@ const createStyles = (colors: ThemeColors, shadows: Shadows) => StyleSheet.creat
         fontSize: 12,
         color: colors.textSecondary,
         marginTop: 2,
+    },
+    subjectCard: {
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        marginBottom: SPACING.sm,
+        overflow: 'hidden',
+        ...shadows.light,
+    },
+    subjectHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: SPACING.md,
+    },
+    subjectHeaderText: {
+        flex: 1,
+        paddingRight: SPACING.sm,
+    },
+    subjectName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    subjectMeta: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    expandIcon: {
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    topicsContainer: {
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
+    },
+    topicRow: {
+        paddingVertical: SPACING.xs,
+    },
+    topicName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.text,
+    },
+    topicMeta: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    emptyStateContainer: {
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: SPACING.lg,
+        alignItems: 'center',
+        ...shadows.light,
+    },
+    emptyStateText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
     },
 });

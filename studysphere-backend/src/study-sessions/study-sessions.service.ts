@@ -254,15 +254,90 @@ export class StudySessionsService {
   }
 
   async getSubjectPerformance(userId: string) {
-  return await this.sessionRepository
-    .createQueryBuilder('session')
-    .select('session.subject_id', 'subjectId')
-    .addSelect('SUM(session.duration_seconds)', 'totalDuration')
-    .where('session.user_id = :userId', { userId })
-    .andWhere('session.session_status = :status', { status: 'FINISHED' })
-    .groupBy('session.subject_id')
-    .getRawMany();
-}
+    const rows = await this.sessionRepository
+      .createQueryBuilder('session')
+      .leftJoin('session.subject', 'subject')
+      .leftJoin('session.topic', 'topic')
+      .select('session.subjectId', 'subjectId')
+      .addSelect('subject.name', 'subjectName')
+      .addSelect('session.topicId', 'topicId')
+      .addSelect('topic.name', 'topicName')
+      .addSelect('SUM(session.durationSeconds)', 'totalDuration')
+      .addSelect('SUM(session.questionCount)', 'totalQuestions')
+      .addSelect('SUM(session.correctCount)', 'totalCorrect')
+      .addSelect('SUM(session.wrongCount)', 'totalWrong')
+      .addSelect('COUNT(session.id)', 'sessionCount')
+      .where('session.userId = :userId', { userId })
+      .andWhere('session.sessionStatus = :status', { status: SessionStatus.FINISHED })
+      .groupBy('session.subjectId')
+      .addGroupBy('subject.name')
+      .addGroupBy('session.topicId')
+      .addGroupBy('topic.name')
+      .orderBy('subject.name', 'ASC')
+      .addOrderBy('topic.name', 'ASC')
+      .getRawMany();
+
+    const subjectMap = new Map<string, {
+      subjectId: string;
+      subjectName: string;
+      totalDuration: number;
+      totalQuestions: number;
+      totalCorrect: number;
+      totalWrong: number;
+      sessionCount: number;
+      topics: {
+        topicId: string | null;
+        topicName: string;
+        totalDuration: number;
+        totalQuestions: number;
+        totalCorrect: number;
+        totalWrong: number;
+        sessionCount: number;
+      }[];
+    }>();
+
+    for (const row of rows) {
+      const subjectId = row.subjectId as string;
+
+      if (!subjectMap.has(subjectId)) {
+        subjectMap.set(subjectId, {
+          subjectId,
+          subjectName: row.subjectName ?? 'Bilinmeyen Ders',
+          totalDuration: 0,
+          totalQuestions: 0,
+          totalCorrect: 0,
+          totalWrong: 0,
+          sessionCount: 0,
+          topics: [],
+        });
+      }
+
+      const duration = parseInt(row.totalDuration, 10) || 0;
+      const questions = parseInt(row.totalQuestions, 10) || 0;
+      const correct = parseInt(row.totalCorrect, 10) || 0;
+      const wrong = parseInt(row.totalWrong, 10) || 0;
+      const sessionCount = parseInt(row.sessionCount, 10) || 0;
+
+      const subjectEntry = subjectMap.get(subjectId)!;
+      subjectEntry.totalDuration += duration;
+      subjectEntry.totalQuestions += questions;
+      subjectEntry.totalCorrect += correct;
+      subjectEntry.totalWrong += wrong;
+      subjectEntry.sessionCount += sessionCount;
+
+      subjectEntry.topics.push({
+        topicId: row.topicId,
+        topicName: row.topicId ? (row.topicName ?? 'Bilinmeyen Konu') : 'Genel (Konu Seçilmedi)',
+        totalDuration: duration,
+        totalQuestions: questions,
+        totalCorrect: correct,
+        totalWrong: wrong,
+        sessionCount,
+      });
+    }
+
+    return Array.from(subjectMap.values());
+  }
 
   async getModeBreakdown(userId: string) {
     const rows = await this.sessionRepository
