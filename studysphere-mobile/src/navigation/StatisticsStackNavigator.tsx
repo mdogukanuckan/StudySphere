@@ -4,6 +4,7 @@ import SessionHistoryScreen from '../screens/SessionHistory';
 import StatisticsScreen from '../screens/StatisticsScreen';
 import SessionDetailScreen from '../screens/SessionDetail';
 import AchievementsScreen from '../screens/AchievementsScreen';
+import SubjectStatsScreen from '../screens/SubjectStatsScreen';
 import { useTheme } from '../context/ThemeContext';
 
 export type StatisticsStackParamList = {
@@ -11,6 +12,7 @@ export type StatisticsStackParamList = {
     SessionHistory: undefined;
     SessionDetail: { id: string };
     Achievements: undefined;
+    SubjectStats: undefined;
 };
 
 const Stack = createNativeStackNavigator<StatisticsStackParamList>();
@@ -27,6 +29,18 @@ export default function StatisticsStackNavigator() {
                 options={{
                     headerShown: true,
                     title: 'Başarımlar',
+                    headerStyle: { backgroundColor: colors.surface },
+                    headerTintColor: colors.text,
+                    headerTitleStyle: { fontWeight: 'bold' },
+                    headerShadowVisible: false,
+                }}
+            />
+            <Stack.Screen
+                name="SubjectStats"
+                component={SubjectStatsScreen}
+                options={{
+                    headerShown: true,
+                    title: 'Ders / Konu İstatistikleri',
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
                     headerTitleStyle: { fontWeight: 'bold' },

@@ -40,7 +40,28 @@ export class UserStatisticsService {
     if(!statistic){
       statistic = await this.createDefaultStatistic(userId);
     }
-    return statistic;
+    return await this.reconcileStreak(statistic);
+  }
+
+  private async reconcileStreak(stats: UserStatistic): Promise<UserStatistic> {
+    if (!stats.lastStudyDate || stats.currentStreak === 0) {
+      return stats;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastDate = new Date(stats.lastStudyDate);
+    const lastStudyDay = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+
+    const diffTime = Math.abs(today.getTime() - lastStudyDay.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 1) {
+      await this.userStatisticsRepository.update({ id: stats.id }, { currentStreak: 0 });
+      stats.currentStreak = 0;
+    }
+
+    return stats;
   }
 
 

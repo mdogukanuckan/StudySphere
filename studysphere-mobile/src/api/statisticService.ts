@@ -1,4 +1,4 @@
-import { DailyStat, ModeBreakdown, SubjectBreakdown, UserStatistic } from "../types/statistics";
+import { DailyStat, ModeBreakdown, UniverseBreakdown, UserStatistic } from "../types/statistics";
 import apiClient from "./client";
 
 
@@ -14,8 +14,8 @@ export const statisticsService = {
         return response.data;
     },
 
-    getSubjectPerformance: async (): Promise<SubjectBreakdown[]> => {
-        const { data } = await apiClient.get<SubjectBreakdown[]>('/study-sessions/performance/subjects');
+    getSubjectPerformance: async (): Promise<UniverseBreakdown[]> => {
+        const { data } = await apiClient.get<UniverseBreakdown[]>('/study-sessions/performance/subjects');
         return data;
     },
 

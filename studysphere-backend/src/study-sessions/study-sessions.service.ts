@@ -256,9 +256,12 @@ export class StudySessionsService {
   async getSubjectPerformance(userId: string) {
     const rows = await this.sessionRepository
       .createQueryBuilder('session')
+      .leftJoin('session.universe', 'universe')
       .leftJoin('session.subject', 'subject')
       .leftJoin('session.topic', 'topic')
-      .select('session.subjectId', 'subjectId')
+      .select('session.universeId', 'universeId')
+      .addSelect('universe.name', 'universeName')
+      .addSelect('session.subjectId', 'subjectId')
       .addSelect('subject.name', 'subjectName')
       .addSelect('session.topicId', 'topicId')
       .addSelect('topic.name', 'topicName')
@@ -269,15 +272,18 @@ export class StudySessionsService {
       .addSelect('COUNT(session.id)', 'sessionCount')
       .where('session.userId = :userId', { userId })
       .andWhere('session.sessionStatus = :status', { status: SessionStatus.FINISHED })
-      .groupBy('session.subjectId')
+      .groupBy('session.universeId')
+      .addGroupBy('universe.name')
+      .addGroupBy('session.subjectId')
       .addGroupBy('subject.name')
       .addGroupBy('session.topicId')
       .addGroupBy('topic.name')
-      .orderBy('subject.name', 'ASC')
+      .orderBy('universe.name', 'ASC')
+      .addOrderBy('subject.name', 'ASC')
       .addOrderBy('topic.name', 'ASC')
       .getRawMany();
 
-    const subjectMap = new Map<string, {
+    type SubjectEntry = {
       subjectId: string;
       subjectName: string;
       totalDuration: number;
@@ -294,13 +300,30 @@ export class StudySessionsService {
         totalWrong: number;
         sessionCount: number;
       }[];
+    };
+
+    const universeMap = new Map<string, {
+      universeId: string;
+      universeName: string;
+      subjects: Map<string, SubjectEntry>;
     }>();
 
     for (const row of rows) {
+      const universeId = row.universeId as string;
       const subjectId = row.subjectId as string;
 
-      if (!subjectMap.has(subjectId)) {
-        subjectMap.set(subjectId, {
+      if (!universeMap.has(universeId)) {
+        universeMap.set(universeId, {
+          universeId,
+          universeName: row.universeName ?? 'Bilinmeyen Evren',
+          subjects: new Map<string, SubjectEntry>(),
+        });
+      }
+
+      const universeEntry = universeMap.get(universeId)!;
+
+      if (!universeEntry.subjects.has(subjectId)) {
+        universeEntry.subjects.set(subjectId, {
           subjectId,
           subjectName: row.subjectName ?? 'Bilinmeyen Ders',
           totalDuration: 0,
@@ -318,7 +341,7 @@ export class StudySessionsService {
       const wrong = parseInt(row.totalWrong, 10) || 0;
       const sessionCount = parseInt(row.sessionCount, 10) || 0;
 
-      const subjectEntry = subjectMap.get(subjectId)!;
+      const subjectEntry = universeEntry.subjects.get(subjectId)!;
       subjectEntry.totalDuration += duration;
       subjectEntry.totalQuestions += questions;
       subjectEntry.totalCorrect += correct;
@@ -336,7 +359,11 @@ export class StudySessionsService {
       });
     }
 
-    return Array.from(subjectMap.values());
+    return Array.from(universeMap.values()).map((universeEntry) => ({
+      universeId: universeEntry.universeId,
+      universeName: universeEntry.universeName,
+      subjects: Array.from(universeEntry.subjects.values()),
+    }));
   }
 
   async getModeBreakdown(userId: string) {

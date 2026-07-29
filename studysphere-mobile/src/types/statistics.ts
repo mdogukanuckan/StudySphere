@@ -37,6 +37,12 @@ export interface SubjectBreakdown {
     topics: TopicBreakdown[];
 }
 
+export interface UniverseBreakdown {
+    universeId: string;
+    universeName: string;
+    subjects: SubjectBreakdown[];
+}
+
 
 export interface ModeBreakdownEntry {
     totalDuration: number;
