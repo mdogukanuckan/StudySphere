@@ -12,4 +12,8 @@ export class UpdateUserDto extends PartialType(
   @IsBoolean()
   @IsOptional()
   monthlySummaryEmailEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  inactivityReminderEnabled?: boolean;
 }

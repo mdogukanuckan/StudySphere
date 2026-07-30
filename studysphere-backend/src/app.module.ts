@@ -20,6 +20,7 @@ import { AchievementsModule } from './achievements/achievements.module';
 import { FriendsModule } from './friends/friends.module';
 import { RoomInvitesModule } from './room-invites/room-invites.module';
 import { StudySummaryModule } from './study-summary/study-summary.module';
+import { InactivityReminderModule } from './inactivity-reminder/inactivity-reminder.module';
 
 @Module({
   imports: [
@@ -59,7 +60,8 @@ import { StudySummaryModule } from './study-summary/study-summary.module';
     AchievementsModule,
     FriendsModule,
     RoomInvitesModule,
-    StudySummaryModule
+    StudySummaryModule,
+    InactivityReminderModule
   ],
   controllers: [AppController],
   providers: [

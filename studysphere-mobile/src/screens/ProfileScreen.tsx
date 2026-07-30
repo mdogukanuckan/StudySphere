@@ -51,11 +51,13 @@ export default function ProfileScreen() {
     const { mutate: updatePreference } = useUpdateProfile();
     const [weeklyEnabled, setWeeklyEnabled] = useState(false);
     const [monthlyEnabled, setMonthlyEnabled] = useState(false);
+    const [inactivityReminderEnabled, setInactivityReminderEnabledState] = useState(true);
 
     useEffect(() => {
         if (currentUser) {
             setWeeklyEnabled(!!currentUser.weeklySummaryEmailEnabled);
             setMonthlyEnabled(!!currentUser.monthlySummaryEmailEnabled);
+            setInactivityReminderEnabledState(currentUser.inactivityReminderEnabled ?? true);
         }
     }, [currentUser]);
 
@@ -79,6 +81,19 @@ export default function ProfileScreen() {
             {
                 onError: (error: any) => {
                     setMonthlyEnabled(!value);
+                    Alert.alert('Güncellenemedi', getErrorMessage(error, 'Ayar kaydedilirken bir hata oluştu.'));
+                },
+            }
+        );
+    };
+
+    const handleToggleInactivityReminder = (value: boolean) => {
+        setInactivityReminderEnabledState(value);
+        updatePreference(
+            { inactivityReminderEnabled: value },
+            {
+                onError: (error: any) => {
+                    setInactivityReminderEnabledState(!value);
                     Alert.alert('Güncellenemedi', getErrorMessage(error, 'Ayar kaydedilirken bir hata oluştu.'));
                 },
             }
@@ -224,6 +239,25 @@ export default function ProfileScreen() {
                     <Switch
                         value={monthlyEnabled}
                         onValueChange={handleToggleMonthlySummary}
+                        trackColor={{ true: colors.primary }}
+                    />
+                </View>
+
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Hareketsizlik Hatırlatması</Text>
+                <View style={[styles.notificationRow, { borderColor: colors.border }]}>
+                    <View style={styles.notificationTextWrap}>
+                        <Text style={[styles.notificationLabel, { color: colors.text }]}>
+                            Uğramadığında hatırlat
+                        </Text>
+                        <Text style={[styles.helperText, { color: colors.textSecondary, marginLeft: 0, marginTop: 2 }]}>
+                            3, 7 ve 14 gün boyunca uygulamayı açmazsan e-posta ve bildirimle hatırlatırız. Uygulamayı her açtığında sayaç sıfırlanır.
+                        </Text>
+                    </View>
+                    <Switch
+                        value={inactivityReminderEnabled}
+                        onValueChange={handleToggleInactivityReminder}
                         trackColor={{ true: colors.primary }}
                     />
                 </View>

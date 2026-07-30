@@ -11,6 +11,7 @@ import FriendProfileScreen from '../screens/FriendProfileScreen';
 import VerifyEmailScreen from '../screens/VerifyEmailScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useHeartbeat } from '../hooks/useHeartbeat';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export const AppNavigator = () => {
     const { colors, mode, isRestoring: isThemeRestoring } = useTheme();
 
     useHeartbeat(!!token);
+    usePushNotifications(!!token);
 
     const navigationTheme = useMemo(() => {
         const base = mode === 'dark' ? DarkTheme : DefaultTheme;

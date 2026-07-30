@@ -18,6 +18,9 @@ export class KnownDevice {
     @Column({ name: 'device_name', type: 'varchar', length: 255, nullable: true })
     deviceName!: string | null;
 
+    @Column({ name: 'expo_push_token', type: 'varchar', length: 255, nullable: true })
+    expoPushToken!: string | null;
+
     @Column({ name: 'last_login_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
     lastLoginAt!: Date;
 

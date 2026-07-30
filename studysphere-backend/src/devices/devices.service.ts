@@ -49,4 +49,38 @@ export class DevicesService {
 
         return { isNewDevice: !isFirstDeviceEver };
     }
+
+    async registerPushToken(userId: string, deviceId: string, token: string): Promise<void> {
+        const result = await this.knownDeviceRepository.update({ userId, deviceId }, { expoPushToken: token });
+        if (result.affected) {
+            return;
+        }
+
+        try {
+            const device = this.knownDeviceRepository.create({
+                userId,
+                deviceId,
+                deviceName: null,
+                expoPushToken: token,
+                lastLoginAt: new Date(),
+            });
+            await this.knownDeviceRepository.save(device);
+        } catch (error) {
+            if (!!error && typeof error === 'object' && (error as { code?: string }).code === '23505') {
+                await this.knownDeviceRepository.update({ userId, deviceId }, { expoPushToken: token });
+                return;
+            }
+            throw error;
+        }
+    }
+
+    async getPushTokensForUser(userId: string): Promise<string[]> {
+        const devices = await this.knownDeviceRepository.find({
+            where: { userId },
+            select: { id: true, expoPushToken: true },
+        });
+        return devices
+            .map((device) => device.expoPushToken)
+            .filter((token): token is string => !!token);
+    }
 }

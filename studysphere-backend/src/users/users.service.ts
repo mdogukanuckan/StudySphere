@@ -91,7 +91,7 @@ export class UsersService {
   }
 
   async touchLastActiveAt(id: string): Promise<void> {
-    await this.userRepository.update(id, { lastActiveAt: new Date() });
+    await this.userRepository.update(id, { lastActiveAt: new Date(), inactivityReminderStage: 0 });
   }
 
   async getVerificationState(id: string): Promise<Pick<User,

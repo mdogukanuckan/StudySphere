@@ -75,6 +75,12 @@ export class User {
     @Column({ name: 'monthly_summary_email_enabled', type: 'boolean', default: false })
     monthlySummaryEmailEnabled !: boolean;
 
+    @Column({ name: 'inactivity_reminder_enabled', type: 'boolean', default: true })
+    inactivityReminderEnabled !: boolean;
+
+    @Column({ name: 'inactivity_reminder_stage', type: 'int', default: 0 })
+    inactivityReminderStage !: number;
+
     @Column({ name: 'join_by_code_failed_attempts', type: 'int', default: 0 })
     joinByCodeFailedAttempts !: number;
 

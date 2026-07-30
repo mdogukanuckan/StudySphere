@@ -153,4 +153,48 @@ export class MailService {
       throw error;
     }
   }
+
+  private buildInactivityContent(daysInactive: number): { subject: string; headline: string; message: string } {
+    if (daysInactive >= 14) {
+      return {
+        subject: "StudySphere'de seni özledik",
+        headline: '14 gündür seni görmedik!',
+        message: 'Uzun süredir çalışma kaydın yok. Kaldığın yerden devam etmek için hemen kısa bir seans başlat.',
+      };
+    }
+    if (daysInactive >= 7) {
+      return {
+        subject: "Bir haftadır StudySphere'e uğramadın",
+        headline: '7 gündür hareketsizsin.',
+        message: 'Kısa bir çalışma seansıyla devam etmeye ne dersin? Küçük adımlar bile fark yaratır.',
+      };
+    }
+    return {
+      subject: "StudySphere'den hatırlatma",
+      headline: '3 gündür çalışma kaydın yok.',
+      message: 'Çalışmalarına devam etmeyi unutma, birkaç dakikan bile yeterli.',
+    };
+  }
+
+  async sendInactivityReminder(to: string, daysInactive: number): Promise<void> {
+    const { subject, headline, message } = this.buildInactivityContent(daysInactive);
+    try {
+      await this.transporter.sendMail({
+        from: `"StudySphere" <${this.fromAddress}>`,
+        to,
+        subject,
+        text: `${headline}\n\n${message}\n\nBu bildirimleri "Profil > Hareketsizlik Hatırlatması" bölümünden kapatabilirsiniz.`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px;">
+            <p style="font-size: 18px; font-weight: bold;">${headline}</p>
+            <p>${message}</p>
+            <p style="color: #666;">Bu bildirimleri "Profil &gt; Hareketsizlik Hatırlatması" bölümünden kapatabilirsiniz.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(`Hareketsizlik hatırlatma e-postası gönderilemedi (${to}): ${(error as Error).message}`);
+      throw error;
+    }
+  }
 }

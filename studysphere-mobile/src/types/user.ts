@@ -9,6 +9,7 @@ export interface CurrentUser {
     isEmailVerified?: boolean;
     weeklySummaryEmailEnabled?: boolean;
     monthlySummaryEmailEnabled?: boolean;
+    inactivityReminderEnabled?: boolean;
 }
 
 
@@ -18,4 +19,5 @@ export interface UpdateProfileRequest {
     lastName?: string;
     weeklySummaryEmailEnabled?: boolean;
     monthlySummaryEmailEnabled?: boolean;
+    inactivityReminderEnabled?: boolean;
 }
