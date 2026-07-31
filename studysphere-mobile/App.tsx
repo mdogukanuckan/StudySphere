@@ -1,6 +1,7 @@
 // App.tsx
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as SplashScreen from 'expo-splash-screen';
 // SafeAreaView artık 'react-native' yerine 'react-native-safe-area-context'ten
 // import ediliyor (bkz. CustomHeader/LoginScreen/RegisterScreen) — bu paketin
 // doğru çalışması (gerçek inset değerlerini hesaplayabilmesi) için ağacın en
@@ -24,6 +25,8 @@ import { NotificationSettingsProvider } from './src/context/NotificationSettings
 // token'ına ihtiyaç duyuyor (bkz. context/SocketContext.tsx).
 import { SocketProvider } from './src/context/SocketContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // 1. Query Client örneğini oluşturuyoruz (Önbellek deposu)
 const queryClient = new QueryClient();

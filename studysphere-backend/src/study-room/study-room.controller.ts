@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Re
 import { CreateStudyRoomDto } from './dto/create-study-room.dto';
 import { UpdateStudyRoomDto } from './dto/update-study-room.dto';
 import { RoomFilterDto } from './dto/room-filter.dto';
+import { SearchRoomsDto } from './dto/search-rooms.dto';
 import { JoinByCodeDto } from './dto/join-by-code.dto';
 import { UpdateParticipantStatusDto } from './dto/update-participant-status.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard';
@@ -10,7 +11,7 @@ import { StudyRoomService } from './study-room.service';
 
 
 @Controller('study-rooms')
-@UseGuards(JwtAuthGuard) 
+@UseGuards(JwtAuthGuard)
 export class StudyRoomsController {
   constructor(private readonly studyRoomsService: StudyRoomService) {}
 
@@ -23,6 +24,16 @@ export class StudyRoomsController {
   @Get()
   async getRooms(@Req() req, @Query() filterDto: RoomFilterDto) {
     return await this.studyRoomsService.getRooms(filterDto, req.user.userId);
+  }
+
+  @Get('search')
+  async searchRooms(@Query() searchDto: SearchRoomsDto) {
+    return await this.studyRoomsService.searchPublicRooms(searchDto.q);
+  }
+
+  @Get('search-suggestions')
+  async getSearchSuggestions(@Query() searchDto: SearchRoomsDto) {
+    return await this.studyRoomsService.getSearchSuggestions(searchDto.q);
   }
 
   @Post('join-by-code')

@@ -14,6 +14,24 @@ export const useGetRooms = () => {
   });
 };
 
+export const useSearchRooms = (query: string) => {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ['study-rooms-search', trimmed],
+    queryFn: () => studyRoomApi.searchRooms(trimmed),
+    enabled: trimmed.length >= 2,
+  });
+};
+
+export const useSearchSuggestions = (query: string) => {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ['study-rooms-search-suggestions', trimmed],
+    queryFn: () => studyRoomApi.getSearchSuggestions(trimmed),
+    enabled: trimmed.length >= 2,
+  });
+};
+
 export const useRoomParticipants = (roomId: string) => {
   return useQuery({
     queryKey: ['study-room-participants', roomId],

@@ -15,6 +15,16 @@ import { UsersService } from "../users/users.service";
 
 const MAX_JOIN_BY_CODE_ATTEMPTS = 5;
 const JOIN_BY_CODE_LOCK_MS = 10 * 60 * 1000;
+const SEARCH_RESULTS_LIMIT = 50;
+const SEARCH_SUGGESTIONS_PER_TYPE = 5;
+const SEARCH_SUGGESTIONS_TOTAL_LIMIT = 10;
+
+export type RoomSearchSuggestionType = 'title' | 'universe' | 'subject' | 'topic';
+
+export interface RoomSearchSuggestion {
+  label: string;
+  type: RoomSearchSuggestionType;
+}
 
 @Injectable()
 export class StudyRoomService {
@@ -104,25 +114,92 @@ export class StudyRoomService {
     );
 
     const rooms = await query.orderBy('room.createdAt', 'DESC').getMany();
-    if (rooms.length === 0) return rooms;
-
-    const counts = await this.participantRepository.createQueryBuilder('participant')
-      .innerJoin('participant.user', 'user')
-      .select('participant.roomId', 'roomId')
-      .addSelect('COUNT(*)', 'count')
-      .where('participant.isActive = true')
-      .andWhere('user.deletedAt IS NULL')
-      .andWhere('participant.roomId IN (:...roomIds)', { roomIds: rooms.map((r) => r.id) })
-      .groupBy('participant.roomId')
-      .getRawMany<{ roomId: string; count: string }>();
-
-    const countByRoomId = new Map(counts.map((c) => [c.roomId, Number(c.count)]));
-    rooms.forEach((room) => {
-      room.currentParticipants = countByRoomId.get(room.id) ?? 0;
-    });
-
+    await this.attachParticipantCounts(rooms);
     return rooms;
   }
+
+  async searchPublicRooms(rawQuery: string): Promise<StudyRoom[]> {
+    const term = `%${rawQuery.trim()}%`;
+
+    const rooms = await this.roomRepository.createQueryBuilder('room')
+      .leftJoin('room.owner', 'owner')
+      .addSelect(['owner.id', 'owner.username'])
+      .leftJoinAndSelect('room.universe', 'universe')
+      .leftJoinAndSelect('room.subject', 'subject')
+      .leftJoinAndSelect('room.topic', 'topic')
+      .where('room.is_private = false')
+      .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
+      .andWhere(
+        '(room.title ILIKE :term OR universe.name ILIKE :term OR subject.name ILIKE :term OR topic.name ILIKE :term)',
+        { term },
+      )
+      .orderBy('room.createdAt', 'DESC')
+      .take(SEARCH_RESULTS_LIMIT)
+      .getMany();
+
+    await this.attachParticipantCounts(rooms);
+    return rooms;
+  }
+
+  async getSearchSuggestions(rawQuery: string): Promise<RoomSearchSuggestion[]> {
+    const term = `%${rawQuery.trim()}%`;
+
+    const universeRows = await this.roomRepository.createQueryBuilder('room')
+      .innerJoin('room.universe', 'universe')
+      .select('DISTINCT universe.name', 'label')
+      .where('room.is_private = false')
+      .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
+      .andWhere('universe.name ILIKE :term', { term })
+      .limit(SEARCH_SUGGESTIONS_PER_TYPE)
+      .getRawMany<{ label: string }>();
+
+    const subjectRows = await this.roomRepository.createQueryBuilder('room')
+      .innerJoin('room.subject', 'subject')
+      .select('DISTINCT subject.name', 'label')
+      .where('room.is_private = false')
+      .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
+      .andWhere('subject.name ILIKE :term', { term })
+      .limit(SEARCH_SUGGESTIONS_PER_TYPE)
+      .getRawMany<{ label: string }>();
+
+    const topicRows = await this.roomRepository.createQueryBuilder('room')
+      .innerJoin('room.topic', 'topic')
+      .select('DISTINCT topic.name', 'label')
+      .where('room.is_private = false')
+      .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
+      .andWhere('topic.name ILIKE :term', { term })
+      .limit(SEARCH_SUGGESTIONS_PER_TYPE)
+      .getRawMany<{ label: string }>();
+
+    const titleRows = await this.roomRepository.createQueryBuilder('room')
+      .select('DISTINCT room.title', 'label')
+      .where('room.is_private = false')
+      .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
+      .andWhere('room.title ILIKE :term', { term })
+      .limit(SEARCH_SUGGESTIONS_PER_TYPE)
+      .getRawMany<{ label: string }>();
+
+    const suggestions: RoomSearchSuggestion[] = [];
+    const seen = new Set<string>();
+
+    const pushRows = (rows: { label: string }[], type: RoomSearchSuggestionType) => {
+      rows.forEach((row) => {
+        const key = `${type}:${row.label.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          suggestions.push({ label: row.label, type });
+        }
+      });
+    };
+
+    pushRows(universeRows, 'universe');
+    pushRows(subjectRows, 'subject');
+    pushRows(topicRows, 'topic');
+    pushRows(titleRows, 'title');
+
+    return suggestions.slice(0, SEARCH_SUGGESTIONS_TOTAL_LIMIT);
+  }
+
   async getRoom(id: string): Promise<StudyRoom> {
     const room = await this.roomRepository.createQueryBuilder('room')
       .leftJoin('room.owner', 'owner')
@@ -335,6 +412,25 @@ export class StudyRoomService {
         joinedAt: p.joinedAt,
         isSessionPaused: pausedUserIds.has(p.user.id),
       }));
+  }
+
+  private async attachParticipantCounts(rooms: StudyRoom[]): Promise<void> {
+    if (rooms.length === 0) return;
+
+    const counts = await this.participantRepository.createQueryBuilder('participant')
+      .innerJoin('participant.user', 'user')
+      .select('participant.roomId', 'roomId')
+      .addSelect('COUNT(*)', 'count')
+      .where('participant.isActive = true')
+      .andWhere('user.deletedAt IS NULL')
+      .andWhere('participant.roomId IN (:...roomIds)', { roomIds: rooms.map((r) => r.id) })
+      .groupBy('participant.roomId')
+      .getRawMany<{ roomId: string; count: string }>();
+
+    const countByRoomId = new Map(counts.map((c) => [c.roomId, Number(c.count)]));
+    rooms.forEach((room) => {
+      room.currentParticipants = countByRoomId.get(room.id) ?? 0;
+    });
   }
 
   private async checkUserActiveInAnyRoom(userId: string): Promise<void> {

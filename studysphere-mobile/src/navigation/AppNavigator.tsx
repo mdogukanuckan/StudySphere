@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { useAuthContext } from '../context/AuthContext';
 import { AuthNavigator } from './AuthNavigator';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Dimensions, Image, StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { MainNavigator } from './MainNavigator';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -13,14 +14,28 @@ import { useTheme } from '../context/ThemeContext';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
+const MIN_SPLASH_DURATION_MS = 1800;
+
 const Stack = createNativeStackNavigator();
 
 export const AppNavigator = () => {
     const { token, isRestoring: isAuthRestoring } = useAuthContext();
     const { colors, mode, isRestoring: isThemeRestoring } = useTheme();
+    const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+    const [screenSize, setScreenSize] = useState(() => Dimensions.get('screen'));
 
     useHeartbeat(!!token);
     usePushNotifications(!!token);
+
+    useEffect(() => {
+        SplashScreen.hideAsync().catch(() => {});
+        const timeout = setTimeout(() => setMinSplashElapsed(true), MIN_SPLASH_DURATION_MS);
+        const subscription = Dimensions.addEventListener('change', ({ screen }) => setScreenSize(screen));
+        return () => {
+            clearTimeout(timeout);
+            subscription.remove();
+        };
+    }, []);
 
     const navigationTheme = useMemo(() => {
         const base = mode === 'dark' ? DarkTheme : DefaultTheme;
@@ -38,11 +53,13 @@ export const AppNavigator = () => {
         };
     }, [mode, colors]);
 
-    if (isAuthRestoring || isThemeRestoring) {
+    if (isAuthRestoring || isThemeRestoring || !minSplashElapsed) {
         return (
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            <Image
+                source={require('../../assets/studysphere_photo.png')}
+                resizeMode="cover"
+                style={[styles.splashImage, { width: screenSize.width, height: screenSize.height }]}
+            />
         );
     }
 
@@ -80,10 +97,9 @@ export const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
+    splashImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
     },
 });

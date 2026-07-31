@@ -5,7 +5,7 @@ import { Friendship } from './entities/friendship.entity';
 import { FriendshipStatus } from './enums/friendship-status.enum';
 import { User } from '../users/entities/user.entity';
 import { SessionStatus, StudySession } from '../study-sessions/entities/study-session.entity';
-import { UserStatistic } from '../user-statistics/entities/user-statistic.entity';
+import { UserStatisticsService } from '../user-statistics/user-statistics.service';
 import { AchievementsService, UnlockedAchievement } from '../achievements/achievements.service';
 
 export type FriendPresence = 'STUDYING' | 'ON_BREAK' | 'ONLINE' | 'OFFLINE';
@@ -36,8 +36,7 @@ export class FriendsService {
         private readonly userRepository: Repository<User>,
         @InjectRepository(StudySession)
         private readonly studySessionRepository: Repository<StudySession>,
-        @InjectRepository(UserStatistic)
-        private readonly userStatisticRepository: Repository<UserStatistic>,
+        private readonly userStatisticsService: UserStatisticsService,
         private readonly achievementsService: AchievementsService,
     ) { }
 
@@ -59,7 +58,7 @@ export class FriendsService {
         });
     }
 
-    
+
     async searchUsers(currentUserId: string, query: string): Promise<Array<SafeUser & { relationship: UserRelationship }>> {
         const trimmed = (query ?? '').trim();
         if (trimmed.length < 2) return [];
@@ -120,7 +119,7 @@ export class FriendsService {
             });
             return await this.friendshipRepository.save(request);
         } catch (error: any) {
-   
+
             if (error?.code === '23505' || error?.driverError?.code === '23505') {
                 throw new ConflictException('Zaten bekleyen bir istek var.');
             }
@@ -150,7 +149,7 @@ export class FriendsService {
         request.status = FriendshipStatus.ACCEPTED;
         const saved = await this.friendshipRepository.save(request);
 
-     
+
         let newAchievements: UnlockedAchievement[] = [];
         try {
             const otherUserId = saved.requesterId === userId ? saved.addresseeId : saved.requesterId;
@@ -166,7 +165,7 @@ export class FriendsService {
         return { ...saved, newAchievements };
     }
 
-  
+
     async rejectOrCancelRequest(userId: string, requestId: string): Promise<void> {
         const request = await this.findOwnedRequest(requestId, userId);
         await this.friendshipRepository.remove(request);
@@ -224,7 +223,7 @@ export class FriendsService {
         const friendUsers = relationships.map((r) => (r.requesterId === userId ? r.addressee : r.requester));
         const friendIds = friendUsers.map((u) => u.id);
 
-      
+
         const activeSessions = await this.studySessionRepository.find({
             where: { userId: In(friendIds), sessionStatus: In([SessionStatus.ACTIVE, SessionStatus.PAUSED]) },
             order: { updatedAt: 'DESC' },
@@ -258,7 +257,7 @@ export class FriendsService {
         }
 
         const [statistic, achievements] = await Promise.all([
-            this.userStatisticRepository.findOne({ where: { user: { id: friendUserId } } }),
+            this.userStatisticsService.getStatisticByUserId(friendUserId),
             this.achievementsService.getForUser(friendUserId),
         ]);
 

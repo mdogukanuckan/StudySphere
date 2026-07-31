@@ -52,12 +52,19 @@ export interface CreateRoomDto {
   isPrivate: boolean;
 }
 
+export type RoomSearchSuggestionType = 'title' | 'universe' | 'subject' | 'topic';
+
+export interface RoomSearchSuggestion {
+  label: string;
+  type: RoomSearchSuggestionType;
+}
+
 export const createRoomSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
   description: z.string().optional(),
   universeId: z.string().min(1, 'Evren seçimi zorunludur'),
   subjectId: z.string().min(1, 'Ders seçimi zorunludur'),
-  topicId: z.string().optional(), 
+  topicId: z.string().optional(),
   maxParticipants: z.number().min(2, 'En az 2 katılımcı olmalıdır').max(50, 'En fazla 50 olabilir'),
   isPrivate: z.boolean().default(false),
 });

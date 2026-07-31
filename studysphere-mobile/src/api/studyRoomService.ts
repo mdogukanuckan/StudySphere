@@ -1,4 +1,4 @@
-import { StudyRoom, CreateRoomDto, Participant } from "../types/studyRoom";
+import { StudyRoom, CreateRoomDto, Participant, RoomSearchSuggestion } from "../types/studyRoom";
 import apiClient from "./client";
 
 export const studyRoomApi = {
@@ -6,7 +6,17 @@ export const studyRoomApi = {
     const { data } = await apiClient.get('/study-rooms');
     return data;
   },
-  
+
+  searchRooms: async (query: string): Promise<StudyRoom[]> => {
+    const { data } = await apiClient.get('/study-rooms/search', { params: { q: query } });
+    return data;
+  },
+
+  getSearchSuggestions: async (query: string): Promise<RoomSearchSuggestion[]> => {
+    const { data } = await apiClient.get('/study-rooms/search-suggestions', { params: { q: query } });
+    return data;
+  },
+
   getRoomById: async (id: string): Promise<StudyRoom> => {
     const { data } = await apiClient.get(`/study-rooms/${id}`);
     return data;

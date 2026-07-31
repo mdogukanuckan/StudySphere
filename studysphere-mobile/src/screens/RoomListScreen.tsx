@@ -146,6 +146,13 @@ export const RoomListScreen = () => {
       <View style={styles.secondaryActionsRow}>
         <TouchableOpacity
           style={styles.secondaryAction}
+          onPress={() => navigation.navigate('SearchRooms')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.secondaryActionText}>🔍 Oda Ara</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryAction}
           onPress={() => navigation.navigate('JoinRoomByCode')}
           activeOpacity={0.7}
         >
