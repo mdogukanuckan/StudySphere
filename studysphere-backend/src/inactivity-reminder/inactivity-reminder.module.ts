@@ -5,6 +5,7 @@ import { MailModule } from '../mail/mail.module';
 import { PushModule } from '../push/push.module';
 import { DevicesModule } from '../devices/devices.module';
 import { InactivityReminderService } from './inactivity-reminder.service';
+import { InactivityReminderController } from './inactivity-reminder.controller';
 
 @Module({
     imports: [
@@ -13,6 +14,7 @@ import { InactivityReminderService } from './inactivity-reminder.service';
         PushModule,
         DevicesModule,
     ],
+    controllers: [InactivityReminderController],
     providers: [InactivityReminderService],
 })
 export class InactivityReminderModule { }

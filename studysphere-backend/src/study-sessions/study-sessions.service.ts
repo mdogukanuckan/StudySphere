@@ -10,6 +10,33 @@ import { UserStatisticsService } from '../user-statistics/user-statistics.servic
 import { StudyRoomGateway } from '../study-room/study-room.gateway';
 import { AchievementsService, UnlockedAchievement } from '../achievements/achievements.service';
 
+export interface TopicPerformanceEntry {
+  topicId: string | null;
+  topicName: string;
+  totalDuration: number;
+  totalQuestions: number;
+  totalCorrect: number;
+  totalWrong: number;
+  sessionCount: number;
+}
+
+export interface SubjectPerformanceEntry {
+  subjectId: string;
+  subjectName: string;
+  totalDuration: number;
+  totalQuestions: number;
+  totalCorrect: number;
+  totalWrong: number;
+  sessionCount: number;
+  topics: TopicPerformanceEntry[];
+}
+
+export interface UniversePerformanceEntry {
+  universeId: string;
+  universeName: string;
+  subjects: SubjectPerformanceEntry[];
+}
+
 @Injectable()
 export class StudySessionsService {
   constructor(
@@ -253,8 +280,8 @@ export class StudySessionsService {
       .getRawMany();
   }
 
-  async getSubjectPerformance(userId: string) {
-    const rows = await this.sessionRepository
+  async getSubjectPerformance(userId: string, dateRange?: { start: Date; end: Date }): Promise<UniversePerformanceEntry[]> {
+    const query = this.sessionRepository
       .createQueryBuilder('session')
       .leftJoin('session.universe', 'universe')
       .leftJoin('session.subject', 'subject')
@@ -271,7 +298,15 @@ export class StudySessionsService {
       .addSelect('SUM(session.wrongCount)', 'totalWrong')
       .addSelect('COUNT(session.id)', 'sessionCount')
       .where('session.userId = :userId', { userId })
-      .andWhere('session.sessionStatus = :status', { status: SessionStatus.FINISHED })
+      .andWhere('session.sessionStatus = :status', { status: SessionStatus.FINISHED });
+
+    if (dateRange) {
+      query
+        .andWhere('session.startTime >= :start', { start: dateRange.start })
+        .andWhere('session.startTime < :end', { end: dateRange.end });
+    }
+
+    const rows = await query
       .groupBy('session.universeId')
       .addGroupBy('universe.name')
       .addGroupBy('session.subjectId')
@@ -283,29 +318,10 @@ export class StudySessionsService {
       .addOrderBy('topic.name', 'ASC')
       .getRawMany();
 
-    type SubjectEntry = {
-      subjectId: string;
-      subjectName: string;
-      totalDuration: number;
-      totalQuestions: number;
-      totalCorrect: number;
-      totalWrong: number;
-      sessionCount: number;
-      topics: {
-        topicId: string | null;
-        topicName: string;
-        totalDuration: number;
-        totalQuestions: number;
-        totalCorrect: number;
-        totalWrong: number;
-        sessionCount: number;
-      }[];
-    };
-
     const universeMap = new Map<string, {
       universeId: string;
       universeName: string;
-      subjects: Map<string, SubjectEntry>;
+      subjects: Map<string, SubjectPerformanceEntry>;
     }>();
 
     for (const row of rows) {
@@ -316,7 +332,7 @@ export class StudySessionsService {
         universeMap.set(universeId, {
           universeId,
           universeName: row.universeName ?? 'Bilinmeyen Evren',
-          subjects: new Map<string, SubjectEntry>(),
+          subjects: new Map<string, SubjectPerformanceEntry>(),
         });
       }
 

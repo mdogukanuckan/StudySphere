@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
@@ -17,6 +17,16 @@ const REMINDER_STAGES: ReminderStageDefinition[] = [
     { stage: 2, days: 7 },
     { stage: 3, days: 14 },
 ];
+
+export interface TestReminderResult {
+    stage: number;
+    days: number;
+    emailAttempted: boolean;
+    emailSent: boolean;
+    emailSkipReason?: string;
+    pushTokenCount: number;
+    pushAttempted: boolean;
+}
 
 @Injectable()
 export class InactivityReminderService {
@@ -106,5 +116,47 @@ export class InactivityReminderService {
         }
 
         await this.userRepository.update(user.id, { inactivityReminderStage: applicableStage.stage });
+    }
+
+    async sendTestReminder(userId: string, stage: number): Promise<TestReminderResult> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('Kullanıcı bulunamadı.');
+        }
+
+        const definition = REMINDER_STAGES.find((s) => s.stage === stage) ?? REMINDER_STAGES[0];
+
+        let emailAttempted = false;
+        let emailSent = false;
+        let emailSkipReason: string | undefined;
+
+        if (user.isEmailVerified) {
+            emailAttempted = true;
+            try {
+                await this.mailService.sendInactivityReminder(user.email, definition.days);
+                emailSent = true;
+            } catch (error) {
+                emailSkipReason = (error as Error)?.message ?? 'Bilinmeyen hata';
+            }
+        } else {
+            emailSkipReason = 'E-posta doğrulanmamış, üretim mantığıyla aynı şekilde atlandı.';
+        }
+
+        const tokens = await this.devicesService.getPushTokensForUser(user.id);
+        const pushAttempted = tokens.length > 0;
+        if (pushAttempted) {
+            const { title, body } = this.buildPushMessage(definition.days);
+            await this.pushService.sendToTokens(tokens, title, body);
+        }
+
+        return {
+            stage: definition.stage,
+            days: definition.days,
+            emailAttempted,
+            emailSent,
+            emailSkipReason,
+            pushTokenCount: tokens.length,
+            pushAttempted,
+        };
     }
 }

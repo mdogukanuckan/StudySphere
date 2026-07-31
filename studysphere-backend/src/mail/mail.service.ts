@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import type { UniversePerformanceEntry } from '../study-sessions/study-sessions.service';
 
 export interface StudySummaryData {
   periodLabel: string;
@@ -10,6 +11,7 @@ export interface StudySummaryData {
   questionCount: number;
   correctCount: number;
   wrongCount: number;
+  subjectBreakdown: UniversePerformanceEntry[];
 }
 
 @Injectable()
@@ -119,10 +121,71 @@ export class MailService {
     }
   }
 
+  private formatDurationText(totalSeconds: number): string {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return hours > 0 ? `${hours} saat ${minutes} dakika` : `${minutes} dakika`;
+  }
+
+  private buildSubjectBreakdownText(breakdown: UniversePerformanceEntry[]): string {
+    if (breakdown.length === 0) {
+      return '';
+    }
+
+    const lines: string[] = ['Ders / konu bazlı dökümünüz:'];
+    for (const universe of breakdown) {
+      lines.push(`\n${universe.universeName}:`);
+      for (const subject of universe.subjects) {
+        lines.push(
+          `  ${subject.subjectName} — ${this.formatDurationText(subject.totalDuration)}, ${subject.totalQuestions} soru (${subject.totalCorrect} doğru, ${subject.totalWrong} yanlış)`,
+        );
+        for (const topic of subject.topics) {
+          lines.push(
+            `    ${topic.topicName} — ${this.formatDurationText(topic.totalDuration)}, ${topic.totalQuestions} soru (${topic.totalCorrect} doğru, ${topic.totalWrong} yanlış)`,
+          );
+        }
+      }
+    }
+    return lines.join('\n');
+  }
+
+  private buildSubjectBreakdownHtml(breakdown: UniversePerformanceEntry[]): string {
+    if (breakdown.length === 0) {
+      return '';
+    }
+
+    const universesHtml = breakdown.map((universe) => {
+      const subjectsHtml = universe.subjects.map((subject) => {
+        const topicsHtml = subject.topics.map((topic) => `
+          <li style="color: #555; font-size: 13px;">${topic.topicName} — ${this.formatDurationText(topic.totalDuration)}, ${topic.totalQuestions} soru (${topic.totalCorrect} doğru, ${topic.totalWrong} yanlış)</li>
+        `).join('');
+
+        return `
+          <li style="margin-top: 8px;">
+            <strong>${subject.subjectName}</strong> — ${this.formatDurationText(subject.totalDuration)}, ${subject.totalQuestions} soru (${subject.totalCorrect} doğru, ${subject.totalWrong} yanlış)
+            <ul style="margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6;">${topicsHtml}</ul>
+          </li>
+        `;
+      }).join('');
+
+      return `
+        <div style="margin-top: 16px;">
+          <p style="font-weight: 600; margin-bottom: 4px;">${universe.universeName}</p>
+          <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">${subjectsHtml}</ul>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <p style="margin-top: 20px;"><strong>Ders / konu bazlı dökümünüz:</strong></p>
+      ${universesHtml}
+    `;
+  }
+
   async sendStudySummary(to: string, data: StudySummaryData): Promise<void> {
-    const hours = Math.floor(data.totalDurationSeconds / 3600);
-    const minutes = Math.floor((data.totalDurationSeconds % 3600) / 60);
-    const durationText = hours > 0 ? `${hours} saat ${minutes} dakika` : `${minutes} dakika`;
+    const durationText = this.formatDurationText(data.totalDurationSeconds);
+    const breakdownText = this.buildSubjectBreakdownText(data.subjectBreakdown);
+    const breakdownHtml = this.buildSubjectBreakdownHtml(data.subjectBreakdown);
 
     try {
       await this.transporter.sendMail({
@@ -134,6 +197,7 @@ export class MailService {
           `Tamamlanan seans sayısı: ${data.sessionCount}\n` +
           `Çalışılan gün sayısı: ${data.daysStudied}\n` +
           `Çözülen soru sayısı: ${data.questionCount} (${data.correctCount} doğru, ${data.wrongCount} yanlış)\n\n` +
+          (breakdownText ? `${breakdownText}\n\n` : '') +
           `StudySphere'i kullanmaya devam edin!`,
         html: `
           <div style="font-family: sans-serif; max-width: 480px;">
@@ -144,7 +208,8 @@ export class MailService {
               <li>Çalışılan gün sayısı: <strong>${data.daysStudied}</strong></li>
               <li>Çözülen soru sayısı: <strong>${data.questionCount}</strong> (${data.correctCount} doğru, ${data.wrongCount} yanlış)</li>
             </ul>
-            <p style="color: #666;">Bu e-postaları "Profil &gt; E-posta Bildirimleri" bölümünden kapatabilirsiniz.</p>
+            ${breakdownHtml}
+            <p style="color: #666; margin-top: 20px;">Bu e-postaları "Profil &gt; E-posta Bildirimleri" bölümünden kapatabilirsiniz.</p>
           </div>
         `,
       });
