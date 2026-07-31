@@ -1,0 +1,5 @@
+# google-services.json .gitignore'a eklendi (GitHub secret scanning uyarısı,
+# API key public repoda sızmıştı). Ama EAS build native derleme sırasında bu
+# dosyaya ihtiyaç duyuyor, .easignore .gitignore'dan bağımsız olarak build
+# paketine dahil edilmesini sağlıyor.
+!google-services.json
