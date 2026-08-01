@@ -33,6 +33,7 @@ export class MailService {
       port,
       secure: port === 465,
       auth: user && pass ? { user, pass } : undefined,
+      family: 4,
     });
   }
 
