@@ -34,7 +34,7 @@ export class MailService {
       secure: port === 465,
       auth: user && pass ? { user, pass } : undefined,
       family: 4,
-    });
+    } as any);
   }
 
   async sendVerificationCode(to: string, code: string): Promise<void> {
