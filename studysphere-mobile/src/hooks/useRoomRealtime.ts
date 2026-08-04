@@ -9,8 +9,13 @@ export const useJoinRoomChannel = (roomId: string) => {
 
   useEffect(() => {
     if (!socket || !roomId) return;
-    socket.emit('joinRoomChannel', roomId);
+
+    const join = () => socket.emit('joinRoomChannel', roomId);
+    join();
+    socket.on('connect', join);
+
     return () => {
+      socket.off('connect', join);
       socket.emit('leaveRoomChannel', roomId);
     };
   }, [socket, roomId]);
@@ -62,6 +67,9 @@ export const useRoomRealtimeEvents = (roomId: string, callbacks: RoomRealtimeCal
       if (payload.roomId !== roomId) return;
       callbacksRef.current.onRoomClosed?.();
     };
+    const handleReconnect = () => {
+      invalidateParticipants();
+    };
 
     socket.on('participant:joined', handleJoined);
     socket.on('participant:left', handleLeft);
@@ -69,6 +77,7 @@ export const useRoomRealtimeEvents = (roomId: string, callbacks: RoomRealtimeCal
     socket.on('session:paused', handleSessionPaused);
     socket.on('session:resumed', handleSessionResumed);
     socket.on('room:closed', handleRoomClosed);
+    socket.on('connect', handleReconnect);
 
     return () => {
       socket.off('participant:joined', handleJoined);
@@ -77,6 +86,7 @@ export const useRoomRealtimeEvents = (roomId: string, callbacks: RoomRealtimeCal
       socket.off('session:paused', handleSessionPaused);
       socket.off('session:resumed', handleSessionResumed);
       socket.off('room:closed', handleRoomClosed);
+      socket.off('connect', handleReconnect);
     };
   }, [socket, roomId, queryClient]);
 };

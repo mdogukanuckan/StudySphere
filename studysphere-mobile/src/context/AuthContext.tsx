@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { decodeJwtPayload } from '../utils/jwt';
 import { setUnauthorizedHandler, getAccessToken, getRefreshToken, refreshAccessToken, clearTokens } from '../api/client';
 import { logoutUser } from '../api/authService';
@@ -15,13 +16,14 @@ const AuthContext = createContext<AuthContextType> ({} as AuthContextType);
 export const AuthProvider = ({children} : {children : ReactNode}) => {
     const [token , setToken] = useState<string | null>(null);
     const [isRestoring, setIsRestoring] = useState(true);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         (async () => {
             try {
                 const storedToken = await getAccessToken();
                 if (storedToken) {
-                   
+
                     const payload = decodeJwtPayload<{ exp?: number }>(storedToken);
                     const isExpired = !payload?.exp || payload.exp * 1000 <= Date.now();
                     if (!isExpired) {
@@ -47,9 +49,12 @@ export const AuthProvider = ({children} : {children : ReactNode}) => {
     }, []);
 
     useEffect(() => {
-        setUnauthorizedHandler(() => setToken(null));
+        setUnauthorizedHandler(() => {
+            queryClient.clear();
+            setToken(null);
+        });
         return () => setUnauthorizedHandler(null);
-    }, []);
+    }, [queryClient]);
 
     const userId = useMemo(() => {
         if (!token) return null;
@@ -62,6 +67,7 @@ export const AuthProvider = ({children} : {children : ReactNode}) => {
             logoutUser(refreshToken).catch(() => {});
         }
         await clearTokens();
+        queryClient.clear();
         setToken(null);
     };
 
