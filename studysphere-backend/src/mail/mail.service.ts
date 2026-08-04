@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 import type { UniversePerformanceEntry } from '../study-sessions/study-sessions.service';
 
 export interface StudySummaryData {
@@ -17,41 +16,52 @@ export interface StudySummaryData {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: nodemailer.Transporter;
+  private readonly brevoApiKey: string;
   private readonly fromAddress: string;
+  private readonly fromName = 'StudySphere';
 
   constructor(private readonly configService: ConfigService) {
-    const host = this.configService.get<string>('SMTP_HOST');
-    const port = Number(this.configService.get<string>('SMTP_PORT') ?? '587');
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
+    this.brevoApiKey = this.configService.get<string>('BREVO_API_KEY') ?? '';
+    this.fromAddress = this.configService.get<string>('MAIL_FROM') ?? 'noreply@studysphere.local';
+  }
 
-    this.fromAddress = this.configService.get<string>('MAIL_FROM') ?? user ?? 'noreply@studysphere.local';
+  private async sendViaBrevo(to: string, subject: string, text: string, html: string): Promise<void> {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': this.brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: { name: this.fromName, email: this.fromAddress },
+        to: [{ email: to }],
+        subject,
+        textContent: text,
+        htmlContent: html,
+      }),
+    });
 
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: user && pass ? { user, pass } : undefined,
-      family: 4,
-    } as any);
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Brevo API ${response.status}: ${body}`);
+    }
   }
 
   async sendVerificationCode(to: string, code: string): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
-        subject: 'StudySphere e-posta doğrulama kodunuz',
-        text: `Doğrulama kodunuz: ${code}\n\nBu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.`,
-        html: `
+        'StudySphere e-posta doğrulama kodunuz',
+        `Doğrulama kodunuz: ${code}\n\nBu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.`,
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p>StudySphere hesabınızı doğrulamak için aşağıdaki kodu kullanın:</p>
             <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
             <p style="color: #666;">Bu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Doğrulama e-postası gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
@@ -60,19 +70,18 @@ export class MailService {
 
   async sendPasswordResetCode(to: string, code: string): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
-        subject: 'StudySphere şifre sıfırlama kodunuz',
-        text: `Şifre sıfırlama kodunuz: ${code}\n\nBu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilir, şifreniz değişmeden kalır.`,
-        html: `
+        'StudySphere şifre sıfırlama kodunuz',
+        `Şifre sıfırlama kodunuz: ${code}\n\nBu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilir, şifreniz değişmeden kalır.`,
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p>StudySphere şifrenizi sıfırlamak için aşağıdaki kodu kullanın:</p>
             <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
             <p style="color: #666;">Bu kod 10 dakika içinde geçerliliğini kaybedecek. Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz, şifreniz değişmeden kalır.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Şifre sıfırlama e-postası gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
@@ -81,18 +90,17 @@ export class MailService {
 
   async sendPasswordChangedNotice(to: string): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
-        subject: 'StudySphere şifreniz değiştirildi',
-        text: `Hesabınızın şifresi az önce değiştirildi ve tüm cihazlarınızda oturumunuz sonlandırıldı.\n\nBu işlemi siz yapmadıysanız hemen "Şifremi Unuttum" akışıyla şifrenizi tekrar sıfırlayın.`,
-        html: `
+        'StudySphere şifreniz değiştirildi',
+        `Hesabınızın şifresi az önce değiştirildi ve tüm cihazlarınızda oturumunuz sonlandırıldı.\n\nBu işlemi siz yapmadıysanız hemen "Şifremi Unuttum" akışıyla şifrenizi tekrar sıfırlayın.`,
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p>Hesabınızın şifresi az önce değiştirildi ve tüm cihazlarınızdaki oturumlar sonlandırıldı.</p>
             <p style="color: #b00020; font-weight: 600;">Bu işlemi siz yapmadıysanız hemen "Şifremi Unuttum" akışıyla şifrenizi tekrar sıfırlayın.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Şifre değişikliği bildirimi gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
@@ -104,18 +112,17 @@ export class MailService {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
-        subject: 'StudySphere hesabınıza yeni bir cihazdan giriş yapıldı',
-        text: `Hesabınıza ${loginTime} tarihinde "${deviceName}" adlı yeni bir cihazdan giriş yapıldı.\n\nBu işlemi siz yapmadıysanız hemen şifrenizi değiştirin ve "Aktif Oturumlar" bölümünden bilmediğiniz oturumları sonlandırın.`,
-        html: `
+        'StudySphere hesabınıza yeni bir cihazdan giriş yapıldı',
+        `Hesabınıza ${loginTime} tarihinde "${deviceName}" adlı yeni bir cihazdan giriş yapıldı.\n\nBu işlemi siz yapmadıysanız hemen şifrenizi değiştirin ve "Aktif Oturumlar" bölümünden bilmediğiniz oturumları sonlandırın.`,
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p>Hesabınıza <strong>${loginTime}</strong> tarihinde <strong>${deviceName}</strong> adlı yeni bir cihazdan giriş yapıldı.</p>
             <p style="color: #b00020; font-weight: 600;">Bu işlemi siz yapmadıysanız hemen şifrenizi değiştirin ve "Aktif Oturumlar" bölümünden bilmediğiniz oturumları sonlandırın.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Yeni cihaz bildirimi gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
@@ -189,18 +196,17 @@ export class MailService {
     const breakdownHtml = this.buildSubjectBreakdownHtml(data.subjectBreakdown);
 
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
-        subject: `StudySphere çalışma özetiniz: ${data.periodLabel}`,
-        text: `${data.periodLabel} dönemindeki çalışma özetiniz:\n\n` +
+        `StudySphere çalışma özetiniz: ${data.periodLabel}`,
+        `${data.periodLabel} dönemindeki çalışma özetiniz:\n\n` +
           `Toplam çalışma süresi: ${durationText}\n` +
           `Tamamlanan seans sayısı: ${data.sessionCount}\n` +
           `Çalışılan gün sayısı: ${data.daysStudied}\n` +
           `Çözülen soru sayısı: ${data.questionCount} (${data.correctCount} doğru, ${data.wrongCount} yanlış)\n\n` +
           (breakdownText ? `${breakdownText}\n\n` : '') +
           `StudySphere'i kullanmaya devam edin!`,
-        html: `
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p><strong>${data.periodLabel}</strong> dönemindeki çalışma özetiniz:</p>
             <ul style="line-height: 1.8;">
@@ -213,7 +219,7 @@ export class MailService {
             <p style="color: #666; margin-top: 20px;">Bu e-postaları "Profil &gt; E-posta Bildirimleri" bölümünden kapatabilirsiniz.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Çalışma özeti e-postası gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
@@ -245,19 +251,18 @@ export class MailService {
   async sendInactivityReminder(to: string, daysInactive: number): Promise<void> {
     const { subject, headline, message } = this.buildInactivityContent(daysInactive);
     try {
-      await this.transporter.sendMail({
-        from: `"StudySphere" <${this.fromAddress}>`,
+      await this.sendViaBrevo(
         to,
         subject,
-        text: `${headline}\n\n${message}\n\nBu bildirimleri "Profil > Hareketsizlik Hatırlatması" bölümünden kapatabilirsiniz.`,
-        html: `
+        `${headline}\n\n${message}\n\nBu bildirimleri "Profil > Hareketsizlik Hatırlatması" bölümünden kapatabilirsiniz.`,
+        `
           <div style="font-family: sans-serif; max-width: 480px;">
             <p style="font-size: 18px; font-weight: bold;">${headline}</p>
             <p>${message}</p>
             <p style="color: #666;">Bu bildirimleri "Profil &gt; Hareketsizlik Hatırlatması" bölümünden kapatabilirsiniz.</p>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error(`Hareketsizlik hatırlatma e-postası gönderilemedi (${to}): ${(error as Error).message}`);
       throw error;
