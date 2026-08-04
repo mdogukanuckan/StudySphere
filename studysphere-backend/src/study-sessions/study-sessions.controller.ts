@@ -5,6 +5,9 @@ import { UpdateStudySessionDto } from './dto/update-study-session.dto';
 import { SessionType } from './entities/study-session.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth-guard';
 
+const TURKEY_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
+type PerformanceRange = 'week' | 'month';
+
 @Controller('study-sessions')
 @UseGuards(JwtAuthGuard)
 export class StudySessionsController {
@@ -46,10 +49,31 @@ export class StudySessionsController {
     return await this.studySessionsService.getDailyStats(req.user.userId);
   }
 
+  private resolvePerformanceRange(range?: string): { start: Date; end: Date } | undefined {
+    if (range !== 'week' && range !== 'month') {
+      return undefined;
+    }
+
+    const typedRange = range as PerformanceRange;
+    const now = new Date();
+    const shifted = new Date(now.getTime() + TURKEY_UTC_OFFSET_MS);
+    const year = shifted.getUTCFullYear();
+    const month = shifted.getUTCMonth();
+    const day = shifted.getUTCDate();
+    const todayMidnightUtc = new Date(Date.UTC(year, month, day) - TURKEY_UTC_OFFSET_MS);
+
+    const start = typedRange === 'week'
+      ? new Date(todayMidnightUtc.getTime() - 6 * 24 * 60 * 60 * 1000)
+      : new Date(Date.UTC(year, month, 1) - TURKEY_UTC_OFFSET_MS);
+
+    return { start, end: now };
+  }
+
   @Get('performance/subjects')
-  async getSubjectPerformance(@Req() req: any) {
+  async getSubjectPerformance(@Req() req: any, @Query('range') range?: string) {
     const userId = req.user.userId;
-    return await this.studySessionsService.getSubjectPerformance(userId);
+    const dateRange = this.resolvePerformanceRange(range);
+    return await this.studySessionsService.getSubjectPerformance(userId, dateRange);
   }
 
   @Get('performance/mode')

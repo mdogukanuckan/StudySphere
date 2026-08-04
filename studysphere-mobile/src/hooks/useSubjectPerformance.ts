@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { statisticsService } from '../api/statisticService';
+import { statisticsService, SubjectPerformanceRange } from '../api/statisticService';
 
-export const useSubjectPerformance = () => {
+export const useSubjectPerformance = (range?: SubjectPerformanceRange) => {
   return useQuery({
-    queryKey: ['subjectPerformance'],
-    queryFn: statisticsService.getSubjectPerformance,
+    queryKey: ['subjectPerformance', range ?? 'all'],
+    queryFn: () => statisticsService.getSubjectPerformance(range),
   });
 };

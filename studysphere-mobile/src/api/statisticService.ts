@@ -1,6 +1,7 @@
 import { DailyStat, ModeBreakdown, UniverseBreakdown, UserStatistic } from "../types/statistics";
 import apiClient from "./client";
 
+export type SubjectPerformanceRange = 'week' | 'month';
 
 export const statisticsService = {
 
@@ -14,8 +15,10 @@ export const statisticsService = {
         return response.data;
     },
 
-    getSubjectPerformance: async (): Promise<UniverseBreakdown[]> => {
-        const { data } = await apiClient.get<UniverseBreakdown[]>('/study-sessions/performance/subjects');
+    getSubjectPerformance: async (range?: SubjectPerformanceRange): Promise<UniverseBreakdown[]> => {
+        const { data } = await apiClient.get<UniverseBreakdown[]>('/study-sessions/performance/subjects', {
+            params: range ? { range } : undefined,
+        });
         return data;
     },
 
