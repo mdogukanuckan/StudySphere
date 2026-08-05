@@ -24,7 +24,7 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { userId } = useAuthContext();
-  const { data: room, isLoading } = useRoomDetails(roomId);
+  const { data: room, isLoading, isError, refetch } = useRoomDetails(roomId);
   const { data: participants } = useRoomParticipants(roomId);
   const { mutate: joinRoom, isPending: isJoining } = useJoinRoom(roomId);
   const { mutate: leaveRoom, isPending: isLeaving } = useLeaveRoom(roomId);
@@ -61,10 +61,19 @@ export default function RoomDetailScreen({ route, navigation }: Props) {
     },
   });
 
-  if (isLoading || !room) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (isError || !room) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.description}>Oda bilgileri yüklenemedi.</Text>
+        <CustomButton title="Tekrar Dene" onPress={() => refetch()} />
       </View>
     );
   }

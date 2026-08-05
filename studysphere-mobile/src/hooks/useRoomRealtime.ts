@@ -35,7 +35,11 @@ export const useRoomRealtimeEvents = (roomId: string, callbacks: RoomRealtimeCal
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    const invalidateParticipants = () => {
+    const invalidateParticipants = async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['study-room-participants', roomId] }),
+        queryClient.cancelQueries({ queryKey: ['studyRoom', roomId] }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['study-room-participants', roomId] });
       queryClient.invalidateQueries({ queryKey: ['studyRoom', roomId] });
     };
@@ -44,9 +48,10 @@ export const useRoomRealtimeEvents = (roomId: string, callbacks: RoomRealtimeCal
       if (payload.roomId !== roomId) return;
       invalidateParticipants();
     };
-    const handleLeft = (payload: { roomId: string }) => {
+    const handleLeft = async (payload: { roomId: string }) => {
       if (payload.roomId !== roomId) return;
       invalidateParticipants();
+      await queryClient.cancelQueries({ queryKey: ROOM_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
     };
     const handleStatusChanged = (payload: { roomId: string }) => {

@@ -44,7 +44,12 @@ export const useKickParticipant = (roomId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: string) => studyRoomApi.kickParticipant(roomId, targetUserId),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['study-room-participants', roomId] }),
+        queryClient.cancelQueries({ queryKey: ['studyRoom', roomId] }),
+        queryClient.cancelQueries({ queryKey: ROOM_QUERY_KEYS.all }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['study-room-participants', roomId] });
       queryClient.invalidateQueries({ queryKey: ['studyRoom', roomId] });
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
@@ -101,7 +106,12 @@ export const useJoinRoom = (roomId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => joinRoom(roomId),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['studyRoom', roomId] }),
+        queryClient.cancelQueries({ queryKey: ['study-room-participants', roomId] }),
+        queryClient.cancelQueries({ queryKey: ROOM_QUERY_KEYS.all }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['studyRoom', roomId] });
       queryClient.invalidateQueries({ queryKey: ['study-room-participants', roomId] });
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
@@ -129,7 +139,12 @@ export const useLeaveRoom = (roomId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => leaveRoom(roomId),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['studyRoom', roomId] }),
+        queryClient.cancelQueries({ queryKey: ['study-room-participants', roomId] }),
+        queryClient.cancelQueries({ queryKey: ROOM_QUERY_KEYS.all }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['studyRoom', roomId] });
       queryClient.invalidateQueries({ queryKey: ['study-room-participants', roomId] });
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
@@ -148,7 +163,12 @@ export const useCloseRoom = (roomId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => closeRoomRequest(roomId),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['studyRoom', roomId] }),
+        queryClient.cancelQueries({ queryKey: ['study-room-participants', roomId] }),
+        queryClient.cancelQueries({ queryKey: ROOM_QUERY_KEYS.all }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['studyRoom', roomId] });
       queryClient.invalidateQueries({ queryKey: ['study-room-participants', roomId] });
       queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.all });
