@@ -6,6 +6,7 @@ import { User } from '../users/entities/user.entity';
 import { StudySession, SessionStatus } from '../study-sessions/entities/study-session.entity';
 import { StudySessionsService } from '../study-sessions/study-sessions.service';
 import { MailService } from '../mail/mail.service';
+import { StudySummaryPdfService } from './study-summary-pdf.service';
 
 const TURKEY_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -25,6 +26,16 @@ export interface TestSummaryResult {
     sentTo: string;
 }
 
+const REPORT_TITLES: Record<SummaryPeriod, string> = {
+    weekly: 'Haftalık Çalışma Özeti',
+    monthly: 'Aylık Çalışma Özeti',
+};
+
+const REPORT_FILE_NAMES: Record<SummaryPeriod, string> = {
+    weekly: 'studysphere-haftalik-ozet.pdf',
+    monthly: 'studysphere-aylik-ozet.pdf',
+};
+
 @Injectable()
 export class StudySummaryService {
     private readonly logger = new Logger(StudySummaryService.name);
@@ -36,6 +47,7 @@ export class StudySummaryService {
         private readonly studySessionRepository: Repository<StudySession>,
         private readonly studySessionsService: StudySessionsService,
         private readonly mailService: MailService,
+        private readonly studySummaryPdfService: StudySummaryPdfService,
     ) { }
 
     private getTurkeyDateParts(date: Date): { year: number; month: number; day: number } {
@@ -97,6 +109,48 @@ export class StudySummaryService {
             .getRawOne();
     }
 
+    private async buildAndSendSummary(
+        period: SummaryPeriod,
+        user: User,
+        start: Date,
+        end: Date,
+        periodLabel: string,
+        options: { skipIfEmpty: boolean },
+    ): Promise<{ sessionCount: number; sent: boolean }> {
+        const raw = await this.getPeriodTotals(user.id, start, end);
+        const sessionCount = parseInt(raw?.sessionCount ?? '0', 10);
+
+        if (sessionCount === 0 && options.skipIfEmpty) {
+            return { sessionCount, sent: false };
+        }
+
+        const subjectBreakdown = await this.studySessionsService.getSubjectPerformance(user.id, { start, end });
+
+        const summaryData = {
+            periodLabel,
+            totalDurationSeconds: parseInt(raw?.totalDuration ?? '0', 10),
+            sessionCount,
+            daysStudied: parseInt(raw?.daysStudied ?? '0', 10),
+            questionCount: parseInt(raw?.questionCount ?? '0', 10),
+            correctCount: parseInt(raw?.correctCount ?? '0', 10),
+            wrongCount: parseInt(raw?.wrongCount ?? '0', 10),
+        };
+
+        const pdfBuffer = await this.studySummaryPdfService.generate({
+            ...summaryData,
+            userName: user.username,
+            reportTitle: REPORT_TITLES[period],
+            subjectBreakdown,
+        });
+
+        await this.mailService.sendStudySummary(user.email, summaryData, {
+            name: REPORT_FILE_NAMES[period],
+            content: pdfBuffer,
+        });
+
+        return { sessionCount, sent: true };
+    }
+
     private async sendSummariesForPeriod(period: SummaryPeriod, start: Date, end: Date, periodLabel: string) {
         const column = period === 'weekly' ? 'weekly_summary_email_enabled' : 'monthly_summary_email_enabled';
 
@@ -110,25 +164,7 @@ export class StudySummaryService {
 
         for (const user of users) {
             try {
-                const raw = await this.getPeriodTotals(user.id, start, end);
-
-                const sessionCount = parseInt(raw?.sessionCount ?? '0', 10);
-                if (sessionCount === 0) {
-                    continue;
-                }
-
-                const subjectBreakdown = await this.studySessionsService.getSubjectPerformance(user.id, { start, end });
-
-                await this.mailService.sendStudySummary(user.email, {
-                    periodLabel,
-                    totalDurationSeconds: parseInt(raw?.totalDuration ?? '0', 10),
-                    sessionCount,
-                    daysStudied: parseInt(raw?.daysStudied ?? '0', 10),
-                    questionCount: parseInt(raw?.questionCount ?? '0', 10),
-                    correctCount: parseInt(raw?.correctCount ?? '0', 10),
-                    wrongCount: parseInt(raw?.wrongCount ?? '0', 10),
-                    subjectBreakdown,
-                });
+                await this.buildAndSendSummary(period, user, start, end, periodLabel, { skipIfEmpty: true });
             } catch (error) {
                 this.logger.warn(`${period} özet e-postası gönderilemedi (${user.email}): ${(error as Error)?.message}`);
             }
@@ -145,20 +181,7 @@ export class StudySummaryService {
             ? this.computeWeeklyRange()
             : this.computeMonthlyRange();
 
-        const raw = await this.getPeriodTotals(userId, start, end);
-        const sessionCount = parseInt(raw?.sessionCount ?? '0', 10);
-        const subjectBreakdown = await this.studySessionsService.getSubjectPerformance(userId, { start, end });
-
-        await this.mailService.sendStudySummary(user.email, {
-            periodLabel,
-            totalDurationSeconds: parseInt(raw?.totalDuration ?? '0', 10),
-            sessionCount,
-            daysStudied: parseInt(raw?.daysStudied ?? '0', 10),
-            questionCount: parseInt(raw?.questionCount ?? '0', 10),
-            correctCount: parseInt(raw?.correctCount ?? '0', 10),
-            wrongCount: parseInt(raw?.wrongCount ?? '0', 10),
-            subjectBreakdown,
-        });
+        const { sessionCount } = await this.buildAndSendSummary(period, user, start, end, periodLabel, { skipIfEmpty: false });
 
         return {
             period,

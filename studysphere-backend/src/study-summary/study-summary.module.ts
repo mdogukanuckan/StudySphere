@@ -6,6 +6,7 @@ import { MailModule } from '../mail/mail.module';
 import { StudySessionsModule } from '../study-sessions/study-sessions.module';
 import { StudySummaryService } from './study-summary.service';
 import { StudySummaryController } from './study-summary.controller';
+import { StudySummaryPdfService } from './study-summary-pdf.service';
 
 @Module({
     imports: [
@@ -14,6 +15,6 @@ import { StudySummaryController } from './study-summary.controller';
         StudySessionsModule,
     ],
     controllers: [StudySummaryController],
-    providers: [StudySummaryService],
+    providers: [StudySummaryService, StudySummaryPdfService],
 })
 export class StudySummaryModule { }
