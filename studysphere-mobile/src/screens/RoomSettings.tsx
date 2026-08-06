@@ -24,7 +24,7 @@ export default function RoomSettingsScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { data: room, isLoading } = useRoomDetails(id);
+  const { data: room, isLoading, isError, refetch } = useRoomDetails(id);
   const { mutate: updateRoom, isPending: isUpdating } = useUpdateRoom(id);
   const { mutate: closeRoom, isPending: isClosing } = useCloseRoom(id);
   const [form, setForm] = useState(initialFormState);
@@ -96,10 +96,11 @@ export default function RoomSettingsScreen({ route, navigation }: Props) {
     );
   }
 
-  if (!room) {
+  if (isError || !room) {
     return (
       <View style={styles.centeredContainerWithPadding}>
-        <Text style={styles.errorText}>Oda bilgileri bulunamadı.</Text>
+        <Text style={styles.errorText}>Oda bilgileri yüklenemedi.</Text>
+        <CustomButton title="Tekrar Dene" onPress={() => refetch()} style={styles.submitButton} />
       </View>
     );
   }
