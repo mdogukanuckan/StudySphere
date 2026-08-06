@@ -1,6 +1,6 @@
 import apiClient from './client';
 
-export type StudySummaryPeriod = 'weekly' | 'monthly';
+export type StudySummaryPeriod = 'weekly' | 'monthly' | 'cumulative';
 
 export interface StudySummarySendResult {
     period: StudySummaryPeriod;

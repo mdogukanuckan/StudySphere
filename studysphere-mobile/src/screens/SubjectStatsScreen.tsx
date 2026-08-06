@@ -21,11 +21,13 @@ const RANGE_OPTIONS: { value: RangeFilter; label: string }[] = [
 ];
 
 const RANGE_TO_REPORT_PERIOD: Partial<Record<RangeFilter, StudySummaryPeriod>> = {
+    all: 'cumulative',
     week: 'weekly',
     month: 'monthly',
 };
 
 const RANGE_TO_REPORT_LABEL: Partial<Record<RangeFilter, string>> = {
+    all: 'Kümülatif Raporu Mailime Gönder',
     week: 'Haftalık Raporu Mailime Gönder',
     month: 'Aylık Raporu Mailime Gönder',
 };

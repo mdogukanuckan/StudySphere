@@ -10,10 +10,11 @@ import { StudySummaryPdfService } from './study-summary-pdf.service';
 
 const TURKEY_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 
-type SummaryPeriod = 'weekly' | 'monthly';
+type SummaryPeriod = 'weekly' | 'monthly' | 'cumulative';
+type ScheduledSummaryPeriod = 'weekly' | 'monthly';
 
 interface PeriodRange {
-    start: Date;
+    start?: Date;
     end: Date;
     periodLabel: string;
 }
@@ -29,11 +30,13 @@ export interface TestSummaryResult {
 const REPORT_TITLES: Record<SummaryPeriod, string> = {
     weekly: 'Haftalık Çalışma Özeti',
     monthly: 'Aylık Çalışma Özeti',
+    cumulative: 'Kümülatif Çalışma Özeti',
 };
 
 const REPORT_FILE_NAMES: Record<SummaryPeriod, string> = {
     weekly: 'studysphere-haftalik-ozet.pdf',
     monthly: 'studysphere-aylik-ozet.pdf',
+    cumulative: 'studysphere-kumulatif-ozet.pdf',
 };
 
 @Injectable()
@@ -71,7 +74,7 @@ export class StudySummaryService {
         await this.sendSummariesForPeriod('monthly', start, end, periodLabel);
     }
 
-    private computeWeeklyRange(): PeriodRange {
+    private computeWeeklyRange(): Required<PeriodRange> {
         const now = new Date();
         const { year, month, day } = this.getTurkeyDateParts(now);
         const end = this.turkeyMidnightUtc(year, month, day);
@@ -80,7 +83,7 @@ export class StudySummaryService {
         return { start, end, periodLabel };
     }
 
-    private computeMonthlyRange(): PeriodRange {
+    private computeMonthlyRange(): Required<PeriodRange> {
         const now = new Date();
         const { year, month } = this.getTurkeyDateParts(now);
         const end = this.turkeyMidnightUtc(year, month, 1);
@@ -89,12 +92,20 @@ export class StudySummaryService {
         return { start, end, periodLabel };
     }
 
+    private computeCumulativeRange(): PeriodRange {
+        return {
+            start: undefined,
+            end: new Date(),
+            periodLabel: 'Kayıt başlangıcından bugüne',
+        };
+    }
+
     private formatDate(date: Date): string {
         return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Istanbul' });
     }
 
-    private async getPeriodTotals(userId: string, start: Date, end: Date) {
-        return await this.studySessionRepository
+    private async getPeriodTotals(userId: string, start: Date | undefined, end: Date) {
+        const query = this.studySessionRepository
             .createQueryBuilder('s')
             .select('COUNT(*)', 'sessionCount')
             .addSelect('COALESCE(SUM(s.duration_seconds), 0)', 'totalDuration')
@@ -104,15 +115,19 @@ export class StudySummaryService {
             .addSelect('COUNT(DISTINCT DATE(s.start_time))', 'daysStudied')
             .where('s.user_id = :userId', { userId })
             .andWhere('s.session_status = :status', { status: SessionStatus.FINISHED })
-            .andWhere('s.start_time >= :start', { start })
-            .andWhere('s.start_time < :end', { end })
-            .getRawOne();
+            .andWhere('s.start_time < :end', { end });
+
+        if (start) {
+            query.andWhere('s.start_time >= :start', { start });
+        }
+
+        return await query.getRawOne();
     }
 
     private async buildAndSendSummary(
         period: SummaryPeriod,
         user: User,
-        start: Date,
+        start: Date | undefined,
         end: Date,
         periodLabel: string,
         options: { skipIfEmpty: boolean },
@@ -124,7 +139,10 @@ export class StudySummaryService {
             return { sessionCount, sent: false };
         }
 
-        const subjectBreakdown = await this.studySessionsService.getSubjectPerformance(user.id, { start, end });
+        const subjectBreakdown = await this.studySessionsService.getSubjectPerformance(
+            user.id,
+            start ? { start, end } : undefined,
+        );
 
         const summaryData = {
             periodLabel,
@@ -151,7 +169,7 @@ export class StudySummaryService {
         return { sessionCount, sent: true };
     }
 
-    private async sendSummariesForPeriod(period: SummaryPeriod, start: Date, end: Date, periodLabel: string) {
+    private async sendSummariesForPeriod(period: ScheduledSummaryPeriod, start: Date, end: Date, periodLabel: string) {
         const column = period === 'weekly' ? 'weekly_summary_email_enabled' : 'monthly_summary_email_enabled';
 
         const users = await this.userRepository
@@ -171,15 +189,19 @@ export class StudySummaryService {
         }
     }
 
+    private computeRangeForPeriod(period: SummaryPeriod): PeriodRange {
+        if (period === 'weekly') return this.computeWeeklyRange();
+        if (period === 'monthly') return this.computeMonthlyRange();
+        return this.computeCumulativeRange();
+    }
+
     async sendTestSummary(userId: string, period: SummaryPeriod): Promise<TestSummaryResult> {
         const user = await this.userRepository.findOne({ where: { id: userId } });
         if (!user) {
             throw new NotFoundException('Kullanıcı bulunamadı.');
         }
 
-        const { start, end, periodLabel } = period === 'weekly'
-            ? this.computeWeeklyRange()
-            : this.computeMonthlyRange();
+        const { start, end, periodLabel } = this.computeRangeForPeriod(period);
 
         const { sessionCount } = await this.buildAndSendSummary(period, user, start, end, periodLabel, { skipIfEmpty: false });
 
