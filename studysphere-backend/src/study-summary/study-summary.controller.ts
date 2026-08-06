@@ -8,8 +8,8 @@ export class StudySummaryController {
     constructor(private readonly studySummaryService: StudySummaryService) { }
 
     @UseGuards(JwtAuthGuard)
-    @Post('test-send')
-    async testSend(@Req() req, @Body() dto: TestSendStudySummaryDto) {
+    @Post('send')
+    async send(@Req() req, @Body() dto: TestSendStudySummaryDto) {
         return this.studySummaryService.sendTestSummary(req.user.userId, dto.period ?? 'weekly');
     }
 }

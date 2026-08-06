@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSubjectPerformance } from "../hooks/useSubjectPerformance";
+import { useSendStudySummaryReport } from "../hooks/useStudySummary";
 import { SubjectPerformanceRange } from "../api/statisticService";
+import { StudySummaryPeriod } from "../api/studySummaryService";
 import { SubjectBreakdown } from "../types/statistics";
 import { SPACING, ThemeColors, Shadows } from "../theme/theme";
 import { useTheme } from "../context/ThemeContext";
+import { CustomButton } from "../components/CustomButton";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const formatMinutes = (durationSeconds: number) => `${Math.floor(durationSeconds / 60)} dk`;
 
@@ -15,6 +19,16 @@ const RANGE_OPTIONS: { value: RangeFilter; label: string }[] = [
     { value: 'week', label: 'Bu Hafta' },
     { value: 'month', label: 'Bu Ay' },
 ];
+
+const RANGE_TO_REPORT_PERIOD: Partial<Record<RangeFilter, StudySummaryPeriod>> = {
+    week: 'weekly',
+    month: 'monthly',
+};
+
+const RANGE_TO_REPORT_LABEL: Partial<Record<RangeFilter, string>> = {
+    week: 'Haftalık Raporu Mailime Gönder',
+    month: 'Aylık Raporu Mailime Gönder',
+};
 
 const SubjectAccordion = ({ subject, expanded, onToggle }: { subject: SubjectBreakdown, expanded: boolean, onToggle: () => void }) => {
     const { colors, shadows } = useTheme();
@@ -59,6 +73,26 @@ export default function SubjectStatsScreen() {
     const [expandedSubjectIds, setExpandedSubjectIds] = useState<Set<string>>(new Set());
     const [range, setRange] = useState<RangeFilter>('all');
     const { data: subjectBreakdown, isLoading } = useSubjectPerformance(range === 'all' ? undefined : range);
+    const { mutate: sendReport, isPending: isSendingReport } = useSendStudySummaryReport();
+
+    const reportPeriod = RANGE_TO_REPORT_PERIOD[range];
+
+    const handleSendReport = () => {
+        if (!reportPeriod) return;
+        sendReport(reportPeriod, {
+            onSuccess: (result) => {
+                Alert.alert(
+                    'Gönderildi',
+                    result.hasData
+                        ? `Rapor ${result.sentTo} adresine gönderildi.`
+                        : `Bu dönemde kayıtlı çalışma verisi yok, yine de bir özet ${result.sentTo} adresine gönderildi.`,
+                );
+            },
+            onError: (error) => {
+                Alert.alert('Gönderilemedi', getErrorMessage(error, 'Rapor gönderilirken bir hata oluştu.'));
+            },
+        });
+    };
 
     const toggleSubject = (subjectId: string) => {
         setExpandedSubjectIds((prev) => {
@@ -91,6 +125,16 @@ export default function SubjectStatsScreen() {
                     );
                 })}
             </View>
+            {reportPeriod && (
+                <View style={styles.reportButtonContainer}>
+                    <CustomButton
+                        title={RANGE_TO_REPORT_LABEL[range] ?? 'Raporu Mailime Gönder'}
+                        onPress={handleSendReport}
+                        loading={isSendingReport}
+                        variant="outline"
+                    />
+                </View>
+            )}
             {isLoading ? (
                 <View style={styles.center}>
                     <ActivityIndicator size='large' color={colors.primary} />
@@ -159,6 +203,10 @@ const createStyles = (colors: ThemeColors, shadows: Shadows) => StyleSheet.creat
     },
     filterPillTextActive: {
         color: '#FFFFFF',
+    },
+    reportButtonContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: SPACING.sm,
     },
     scroll: {
         flex: 1,
